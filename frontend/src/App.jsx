@@ -175,6 +175,9 @@ const MoonriseTracker = () => {
   const [toDate, setToDate] = useState(threeMonthsLater.toISOString().split("T")[0]);
   const [useDefaultRange, setUseDefaultRange] = useState(true);
 
+  // Bedtime state - default to 11:00 PM (23:00)
+  const [bedtime, setBedtime] = useState("23:00");
+
   const generateICS = () => {
     if (!moonriseData || !moonriseData.events || moonriseData.events.length === 0) {
       setError("No moonrise data available to export");
@@ -338,6 +341,7 @@ const MoonriseTracker = () => {
     try {
       const requestBody = {
         location: locationInput.trim(),
+        bedtime: bedtime, // Add bedtime to request
         // Keep zipCode for backward compatibility if it looks like a ZIP
         ...(/^\d{5}(-\d{4})?$/.test(locationInput.trim()) && { zipCode: locationInput.trim() }),
       };
@@ -457,7 +461,7 @@ const MoonriseTracker = () => {
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-white cursor-pointer">
                   <input type="radio" checked={useDefaultRange} onChange={() => setUseDefaultRange(true)} className="text-purple-600 focus:ring-purple-400" />
-                  <span className="text-sm">Next 3 months (recommended)</span>
+                  <span className="text-sm">Next 30 days</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-white cursor-pointer">
@@ -477,6 +481,68 @@ const MoonriseTracker = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Bedtime Selection */}
+            <div className="mt-10">
+              <div className="flex items-center gap-2 mb-3">
+                <Sun className="w-4 h-4 text-white" />
+                <span className="text-sm font-medium text-white">Your Bedtime</span>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs text-purple-200 leading-relaxed">To avoid late-night alerts, we'll only show moonrises that occur between sunset and your bedtime. This ensures you won't get calendar notifications at 3 AM when the moon rises!</p>
+
+                <div className="w-full">
+                  <select value={bedtime} onChange={(e) => setBedtime(e.target.value)} className="w-full px-4 py-2 rounded-lg bg-white/20 border border-white/30 text-white focus:ring-2 focus:ring-purple-400 focus:border-transparent">
+                    <option value="21:00" className="bg-purple-900 text-white">
+                      9:00 PM
+                    </option>
+                    <option value="21:30" className="bg-purple-900 text-white">
+                      9:30 PM
+                    </option>
+                    <option value="22:00" className="bg-purple-900 text-white">
+                      10:00 PM
+                    </option>
+                    <option value="22:30" className="bg-purple-900 text-white">
+                      10:30 PM
+                    </option>
+                    <option value="23:00" className="bg-purple-900 text-white">
+                      11:00 PM (Default)
+                    </option>
+                    <option value="23:30" className="bg-purple-900 text-white">
+                      11:30 PM
+                    </option>
+                    <option value="00:00" className="bg-purple-900 text-white">
+                      12:00 AM (Midnight)
+                    </option>
+                    <option value="00:30" className="bg-purple-900 text-white">
+                      12:30 AM
+                    </option>
+                    <option value="01:00" className="bg-purple-900 text-white">
+                      1:00 AM
+                    </option>
+                    <option value="01:30" className="bg-purple-900 text-white">
+                      1:30 AM
+                    </option>
+                    <option value="02:00" className="bg-purple-900 text-white">
+                      2:00 AM
+                    </option>
+                    <option value="03:00" className="bg-purple-900 text-white">
+                      3:00 AM
+                    </option>
+                    <option value="04:00" className="bg-purple-900 text-white">
+                      4:00 AM
+                    </option>
+                    <option value="05:00" className="bg-purple-900 text-white">
+                      5:00 AM
+                    </option>
+                    <option value="sunrise" className="bg-purple-900 text-white">
+                      Until Sunrise (Original Behavior)
+                    </option>
+                  </select>
+                </div>
               </div>
             </div>
 

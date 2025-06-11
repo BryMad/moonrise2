@@ -276,8 +276,8 @@ const timeToMinutes = (timeString) => {
     return hours * 60 + minutes;
 };
 
-// Helper function to check if moonrise occurs during nighttime
-const isNighttimeMoonrise = (sunsetTime, moonriseTime, sunriseTime) => {
+// Helper function to check if moonrise occurs during nighttime or before bedtime
+const isNighttimeMoonrise = (sunsetTime, moonriseTime, sunriseTime, bedtime = null) => {
     if (!sunsetTime || !moonriseTime || !sunriseTime) return false;
     
     // Convert to comparable format (minutes since midnight)
@@ -287,7 +287,28 @@ const isNighttimeMoonrise = (sunsetTime, moonriseTime, sunriseTime) => {
     const moonrise = toMinutes(moonriseTime);
     const sunrise = toMinutes(sunriseTime); // This is next day's sunrise
     
-    // Check if moonrise is between sunset and midnight, or between midnight and sunrise
+    // If bedtime is specified and it's not "sunrise", use bedtime as cutoff
+    if (bedtime && bedtime !== "sunrise") {
+        const [bedtimeHours, bedtimeMinutes] = bedtime.split(':').map(Number);
+        let bedtimeInMinutes = bedtimeHours * 60 + bedtimeMinutes;
+        
+        // Handle bedtime after midnight (next day)
+        if (bedtimeInMinutes < 12 * 60) { // Before noon means next day
+            bedtimeInMinutes += 24 * 60;
+        }
+        
+        // Check if moonrise is between sunset and bedtime
+        if (bedtimeInMinutes > 24 * 60) {
+            // Bedtime is after midnight, so check:
+            // moonrise after sunset OR moonrise before bedtime (next day)
+            return (moonrise >= sunset) || (moonrise <= (bedtimeInMinutes - 24 * 60));
+        } else {
+            // Bedtime is same day, check moonrise is between sunset and bedtime
+            return (moonrise >= sunset && moonrise <= bedtimeInMinutes);
+        }
+    }
+    
+    // Default behavior: Check if moonrise is between sunset and midnight, or between midnight and sunrise
     return (moonrise >= sunset) || (moonrise <= sunrise);
 };
 
@@ -306,7 +327,7 @@ const getMoonPhaseName = (phase) => {
 // New calculated astronomy endpoint
 app.post('/api/astronomy-calculated', async (req, res) => {
     try {
-        const { zipCode, location, fromDate, toDate, days = 30 } = req.body;
+        const { zipCode, location, fromDate, toDate, days = 30, bedtime } = req.body;
 
         // Accept either 'zipCode' (backward compatibility) or 'location' parameter
         const locationInput = location || zipCode;
@@ -405,7 +426,7 @@ app.post('/api/astronomy-calculated', async (req, res) => {
                 const moonriseTime = new Date(`${dateString}T${astronomicalData.moonrise}:00`);
                 const sunriseTime = new Date(`${nextDay.toISOString().split('T')[0]}T${nextSunrise}:00`);
                 
-                if (isNighttimeMoonrise(sunsetTime, moonriseTime, sunriseTime)) {
+                if (isNighttimeMoonrise(sunsetTime, moonriseTime, sunriseTime, bedtime)) {
                     events.push({
                         date: dateString,
                         moonrise: astronomicalData.moonrise,
@@ -905,7 +926,7 @@ app.post('/api/astronomy-calculated-detailed', async (req, res) => {
                 const moonriseTime = new Date(`${dateString}T${primaryData.moonrise}:00`);
                 const sunriseTime = new Date(`${nextDay.toISOString().split('T')[0]}T${nextSunrise}:00`);
                 
-                if (isNighttimeMoonrise(sunsetTime, moonriseTime, sunriseTime)) {
+                if (isNighttimeMoonrise(sunsetTime, moonriseTime, sunriseTime, bedtime)) {
                     const eventData = {
                         date: dateString,
                         moonrise: primaryData.moonrise,
