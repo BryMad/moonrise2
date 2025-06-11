@@ -4,6 +4,7 @@ const fetch = require('node-fetch'); // npm install node-fetch@2
 const SunCalc = require('suncalc'); // npm install suncalc
 const { find } = require('geo-tz'); // npm install geo-tz
 const A = require('meeusjs'); // npm install meeusjs
+const AstronomyEngine = require('astronomy-engine'); // npm install astronomy-engine
 require('dotenv').config(); // npm install dotenv
 
 const app = express();
@@ -45,6 +46,80 @@ const getLocationFromZip = async (zipCode) => {
     };
 };
 
+// Helper function to convert AstroTime to local time string
+const astroTimeToLocalTime = (astroTime, lat, lng) => {
+    if (!astroTime) return null;
+    
+    // Get timezone for the coordinates
+    const timezones = find(lat, lng);
+    const timezone = timezones[0];
+    
+    // Convert AstroTime to JavaScript Date
+    const jsDate = astroTime.date;
+    
+    // Convert to local timezone string
+    const localTimeString = jsDate.toLocaleTimeString('en-US', {
+        timeZone: timezone,
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    // Handle 24:xx format
+    const [hours, minutes] = localTimeString.split(':');
+    const correctedHours = hours === '24' ? '00' : hours;
+    
+    return `${correctedHours}:${minutes}`;
+};
+
+// Helper function to get Astronomy Engine calculations
+const getAstronomyEngineCalculations = (date, lat, lng) => {
+    try {
+        // Create observer location using correct API
+        const observer = new AstronomyEngine.Observer(lat, lng, 0); // elevation in meters
+        
+        // Create AstroTime from date
+        const astroTime = AstronomyEngine.MakeTime(date);
+        
+        console.log(`Astronomy Engine: Calculating for ${date.toISOString()} at ${lat}, ${lng}`);
+        console.log(`Observer created:`, observer);
+        console.log(`AstroTime created:`, astroTime.toString());
+        
+        // Calculate sunrise and sunset (search within 1 day)
+        // Direction: 1 = rise, -1 = set
+        const sunrise = AstronomyEngine.SearchRiseSet(AstronomyEngine.Body.Sun, observer, 1, astroTime, 1.0);
+        const sunset = AstronomyEngine.SearchRiseSet(AstronomyEngine.Body.Sun, observer, -1, astroTime, 1.0);
+        
+        // Calculate moonrise and moonset (search within 1 day)
+        const moonrise = AstronomyEngine.SearchRiseSet(AstronomyEngine.Body.Moon, observer, 1, astroTime, 1.0);
+        const moonset = AstronomyEngine.SearchRiseSet(AstronomyEngine.Body.Moon, observer, -1, astroTime, 1.0);
+        
+        console.log(`Astronomy Engine results:`, {
+            sunrise: sunrise ? sunrise.toString() : 'null',
+            sunset: sunset ? sunset.toString() : 'null', 
+            moonrise: moonrise ? moonrise.toString() : 'null',
+            moonset: moonset ? moonset.toString() : 'null'
+        });
+        
+        // Calculate moon illumination
+        const moonIllum = AstronomyEngine.Illumination(AstronomyEngine.Body.Moon, astroTime);
+        console.log(`Moon illumination:`, moonIllum);
+        
+        return {
+            sunrise: astroTimeToLocalTime(sunrise, lat, lng),
+            sunset: astroTimeToLocalTime(sunset, lat, lng),
+            moonrise: astroTimeToLocalTime(moonrise, lat, lng),
+            moonset: astroTimeToLocalTime(moonset, lat, lng),
+            moon_phase: moonIllum.phase_angle / 360, // Convert to 0-1 scale like SunCalc
+            moon_illumination: (moonIllum.phase_fraction * 100).toFixed(1)
+        };
+    } catch (error) {
+        console.error('Astronomy Engine calculation error:', error);
+        console.error('Error stack:', error.stack);
+        return null;
+    }
+};
+
 // Helper function to format time from Date object to HH:MM format in local timezone
 const formatTime = (date, lat, lng) => {
     if (!date || isNaN(date.getTime())) return null;
@@ -76,13 +151,17 @@ const utcSecondsToLocalTime = (utcSeconds, lat, lng, date) => {
     const timezones = find(lat, lng);
     const timezone = timezones[0];
     
-    // Create a date object for the given date at the UTC seconds time
-    const utcDate = new Date(date);
-    utcDate.setUTCHours(0, 0, 0, 0); // Start of day UTC
-    utcDate.setUTCSeconds(utcSeconds); // Add the UTC seconds
+    // Parse the date string properly to avoid timezone confusion
+    const [year, month, day] = date.toISOString().split('T')[0].split('-').map(Number);
     
-    // Convert to local timezone
-    const localTimeString = utcDate.toLocaleTimeString('en-US', {
+    // Create a UTC date for the specific day at 00:00 UTC
+    const utcMidnight = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+    
+    // Add the UTC seconds from MeeusJs to get the actual UTC time
+    const utcDateTime = new Date(utcMidnight.getTime() + (utcSeconds * 1000));
+    
+    // Convert to local timezone (this automatically handles DST)
+    const localTimeString = utcDateTime.toLocaleTimeString('en-US', {
         timeZone: timezone,
         hour12: false,
         hour: '2-digit',
@@ -208,15 +287,15 @@ app.post('/api/astronomy-calculated', async (req, res) => {
         while (currentDate <= endDate) {
             const dateString = currentDate.toISOString().split('T')[0];
             
-            // Calculate all astronomical data for this date using MeeusJs (primary)
-            const meeusData = getMeeusCalculations(currentDate, location.latitude, location.longitude);
+            // Calculate all astronomical data for this date using Astronomy Engine (primary)
+            const astronomyEngineData = getAstronomyEngineCalculations(currentDate, location.latitude, location.longitude);
             
-            // Fallback to SunCalc if MeeusJs fails
-            let astronomicalData = meeusData;
-            let calculationMethod = 'MeeusJs (Meeus Astronomical Algorithms)';
+            // Fallback to SunCalc if Astronomy Engine fails
+            let astronomicalData = astronomyEngineData;
+            let calculationMethod = 'Astronomy Engine (JPL-validated, VSOP87-based)';
             
-            if (!meeusData) {
-                console.warn(`MeeusJs failed for ${dateString}, falling back to SunCalc`);
+            if (!astronomyEngineData) {
+                console.warn(`Astronomy Engine failed for ${dateString}, falling back to SunCalc`);
                 const sunTimes = SunCalc.getTimes(currentDate, location.latitude, location.longitude);
                 const moonTimes = SunCalc.getMoonTimes(currentDate, location.latitude, location.longitude);
                 const moonIllumination = SunCalc.getMoonIllumination(currentDate);
@@ -285,8 +364,8 @@ app.post('/api/astronomy-calculated', async (req, res) => {
                 from: startDate.toISOString().split('T')[0],
                 to: endDate.toISOString().split('T')[0]
             },
-            calculationMethod: 'MeeusJs (Meeus Astronomical Algorithms) with SunCalc fallback',
-            accuracy: 'High precision based on Jean Meeus algorithms, verified against almanacs',
+            calculationMethod: 'Astronomy Engine (JPL-validated, VSOP87-based) with SunCalc fallback',
+            accuracy: 'Professional-grade precision (±1 arcminute), tested against JPL Horizons',
             events: events
         };
 
@@ -796,6 +875,104 @@ app.post('/api/astronomy-calculated-detailed', async (req, res) => {
     }
 });
 
+// Enhanced comparison endpoint: SunCalc vs Astronomy Engine vs API
+app.get('/api/compare-all-libraries/:zipCode/:date', async (req, res) => {
+    try {
+        const { zipCode, date } = req.params;
+        
+        // Get location coordinates
+        const location = await getLocationFromZip(zipCode);
+        const targetDate = new Date(date);
+        const dateString = targetDate.toISOString().split('T')[0];
+        
+        // SunCalc calculations
+        const sunTimes = SunCalc.getTimes(targetDate, location.latitude, location.longitude);
+        const moonTimes = SunCalc.getMoonTimes(targetDate, location.latitude, location.longitude);
+        const moonIllumination = SunCalc.getMoonIllumination(targetDate);
+        
+        const sunCalcResults = {
+            sunrise: formatTime(sunTimes.sunrise, location.latitude, location.longitude),
+            sunset: formatTime(sunTimes.sunset, location.latitude, location.longitude),
+            moonrise: formatTime(moonTimes.rise, location.latitude, location.longitude),
+            moonset: formatTime(moonTimes.set, location.latitude, location.longitude),
+            moon_phase: moonIllumination.phase,
+            moon_illumination: (moonIllumination.fraction * 100).toFixed(1)
+        };
+        
+        // Astronomy Engine calculations
+        const astronomyEngineResults = getAstronomyEngineCalculations(targetDate, location.latitude, location.longitude);
+        
+        // API data
+        let apiResults = null;
+        if (API_KEY) {
+            try {
+                let formattedLocation = zipCode.trim();
+                if (/^\d{5}(-\d{4})?$/.test(formattedLocation)) {
+                    formattedLocation = `${formattedLocation}, US`;
+                }
+                
+                const astroUrl = `https://api.ipgeolocation.io/v2/astronomy?apiKey=${API_KEY}&location=${encodeURIComponent(formattedLocation)}&date=${dateString}`;
+                const response = await fetch(astroUrl);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    apiResults = {
+                        sunrise: data.astronomy.sunrise,
+                        sunset: data.astronomy.sunset,
+                        moonrise: data.astronomy.moonrise,
+                        moonset: data.astronomy.moonset,
+                        moon_phase: data.astronomy.moon_phase,
+                        moon_illumination: data.astronomy.moon_illumination_percentage
+                    };
+                }
+            } catch (err) {
+                console.warn('API comparison failed:', err.message);
+            }
+        }
+        
+        // Calculate differences from API (ground truth)
+        const comparisons = {};
+        
+        if (astronomyEngineResults && apiResults) {
+            comparisons.astronomy_engine_vs_api = {
+                sunrise_diff: apiResults.sunrise && astronomyEngineResults.sunrise ? 
+                    `${Math.abs(timeToMinutes(apiResults.sunrise) - timeToMinutes(astronomyEngineResults.sunrise))} minutes` : 'One or both missing',
+                sunset_diff: apiResults.sunset && astronomyEngineResults.sunset ? 
+                    `${Math.abs(timeToMinutes(apiResults.sunset) - timeToMinutes(astronomyEngineResults.sunset))} minutes` : 'One or both missing',
+                moonrise_diff: apiResults.moonrise && astronomyEngineResults.moonrise ? 
+                    `${Math.abs(timeToMinutes(apiResults.moonrise) - timeToMinutes(astronomyEngineResults.moonrise))} minutes` : 'One or both missing'
+            };
+        }
+        
+        if (apiResults) {
+            comparisons.suncalc_vs_api = {
+                sunrise_diff: apiResults.sunrise && sunCalcResults.sunrise ? 
+                    `${Math.abs(timeToMinutes(apiResults.sunrise) - timeToMinutes(sunCalcResults.sunrise))} minutes` : 'One or both missing',
+                sunset_diff: apiResults.sunset && sunCalcResults.sunset ? 
+                    `${Math.abs(timeToMinutes(apiResults.sunset) - timeToMinutes(sunCalcResults.sunset))} minutes` : 'One or both missing',
+                moonrise_diff: apiResults.moonrise && sunCalcResults.moonrise ? 
+                    `${Math.abs(timeToMinutes(apiResults.moonrise) - timeToMinutes(sunCalcResults.moonrise))} minutes` : 'One or both missing'
+            };
+        }
+        
+        res.json({
+            location: `${location.city}, ${location.state}`,
+            coordinates: { lat: location.latitude, lng: location.longitude },
+            date: dateString,
+            results: {
+                astronomy_engine: astronomyEngineResults,
+                suncalc: sunCalcResults,
+                api: apiResults
+            },
+            comparisons,
+            accuracy_ranking: "1. Astronomy Engine (JPL-validated), 2. API, 3. SunCalc"
+        });
+        
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Comprehensive comparison endpoint: SunCalc vs MeeusJs vs API
 app.get('/api/compare-libraries/:zipCode/:date', async (req, res) => {
     try {
@@ -901,6 +1078,219 @@ app.get('/api/compare-libraries/:zipCode/:date', async (req, res) => {
         
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Debug endpoint to understand MeeusJs raw output
+app.get('/api/debug-meeus/:zipCode/:date', async (req, res) => {
+    try {
+        const { zipCode, date } = req.params;
+        
+        // Get location coordinates
+        const location = await getLocationFromZip(zipCode);
+        const targetDate = new Date(date);
+        
+        // Get timezone
+        const timezones = find(location.latitude, location.longitude);
+        const timezone = timezones[0];
+        
+        // MeeusJs raw calculations
+        const jdo = new A.JulianDay(targetDate);
+        const coord = A.EclCoord.fromWgs84(location.latitude, location.longitude, 0);
+        
+        // Get raw moon times
+        const moonTimes = A.Moon.times(jdo, coord);
+        
+        // Create UTC midnight for the date (properly)
+        const [year, month, day] = date.split('-').map(Number);
+        const utcMidnight = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+        
+        // Convert raw seconds to actual UTC time
+        const utcMoonrise = new Date(utcMidnight.getTime() + (moonTimes.rise * 1000));
+        const utcMoonset = new Date(utcMidnight.getTime() + (moonTimes.set * 1000));
+        
+        res.json({
+            location: `${location.city}, ${location.state}`,
+            coordinates: { lat: location.latitude, lng: location.longitude },
+            timezone,
+            date: date,
+            rawMeeusOutput: {
+                rise_seconds: moonTimes.rise,
+                set_seconds: moonTimes.set,
+                transit_seconds: moonTimes.transit
+            },
+            utcTimes: {
+                midnight: utcMidnight.toISOString(),
+                moonrise: utcMoonrise.toISOString(),
+                moonset: utcMoonset.toISOString()
+            },
+            localTimes: {
+                moonrise: utcMoonrise.toLocaleTimeString('en-US', {
+                    timeZone: timezone,
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                moonset: utcMoonset.toLocaleTimeString('en-US', {
+                    timeZone: timezone,
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+            }
+        });
+        
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Enhanced debug endpoint to understand MeeusJs internals
+app.get('/api/debug-meeus-detailed/:zipCode/:date', async (req, res) => {
+    try {
+        const { zipCode, date } = req.params;
+        
+        // Get location coordinates
+        const location = await getLocationFromZip(zipCode);
+        const targetDate = new Date(date);
+        
+        // Get timezone
+        const timezones = find(location.latitude, location.longitude);
+        const timezone = timezones[0];
+        
+        // MeeusJs setup - let's examine each step
+        const jdo = new A.JulianDay(targetDate);
+        const coord = A.EclCoord.fromWgs84(location.latitude, location.longitude, 0);
+        
+        // Get raw moon times
+        const moonTimes = A.Moon.times(jdo, coord);
+        const solarTimes = A.Solar.times(jdo, coord);
+        
+        // Parse the date string properly to avoid timezone confusion
+        const [year, month, day] = date.split('-').map(Number);
+        const utcMidnight = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+        
+        // Convert raw seconds to actual UTC time
+        const utcMoonrise = new Date(utcMidnight.getTime() + (moonTimes.rise * 1000));
+        const utcSunrise = new Date(utcMidnight.getTime() + (solarTimes.rise * 1000));
+        
+        // Also get moon position for additional debug info
+        const moonPos = A.Moon.topocentricPosition(jdo, coord, true);
+        const sunPos = A.Solar.apparentTopocentric(jdo, coord);
+        
+        res.json({
+            location: `${location.city}, ${location.state}`,
+            coordinates: { lat: location.latitude, lng: location.longitude },
+            timezone,
+            inputDate: date,
+            targetDateISO: targetDate.toISOString(),
+            
+            meeusSetup: {
+                julianDay: jdo.jd,
+                coordinates: {
+                    lat: coord.lat,
+                    lng: coord.lng, 
+                    elevation: coord.elevation
+                }
+            },
+            
+            rawMeeusOutput: {
+                moon: {
+                    rise_seconds: moonTimes.rise,
+                    set_seconds: moonTimes.set,
+                    transit_seconds: moonTimes.transit
+                },
+                solar: {
+                    rise_seconds: solarTimes.rise,
+                    set_seconds: solarTimes.set,
+                    transit_seconds: solarTimes.transit
+                }
+            },
+            
+            utcConversions: {
+                midnight: utcMidnight.toISOString(),
+                moonrise: utcMoonrise.toISOString(),
+                sunrise: utcSunrise.toISOString(),
+                moonriseHoursFromMidnight: moonTimes.rise / 3600,
+                sunriseHoursFromMidnight: solarTimes.rise / 3600
+            },
+            
+            localTimes: {
+                moonrise: utcMoonrise.toLocaleTimeString('en-US', {
+                    timeZone: timezone,
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                sunrise: utcSunrise.toLocaleTimeString('en-US', {
+                    timeZone: timezone,
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+            },
+            
+            moonPosition: {
+                altitude: moonPos.hz.alt * 180 / Math.PI, // Convert to degrees
+                azimuth: moonPos.hz.az * 180 / Math.PI,   // Convert to degrees
+                distance: moonPos.delta
+            }
+        });
+        
+    } catch (error) {
+        res.status(500).json({ 
+            error: error.message,
+            stack: error.stack 
+        });
+    }
+});
+
+// Test endpoint for Astronomy Engine
+app.get('/api/test-astronomy-engine/:zipCode/:date', async (req, res) => {
+    try {
+        const { zipCode, date } = req.params;
+        
+        // Get location coordinates
+        const location = await getLocationFromZip(zipCode);
+        const targetDate = new Date(date);
+        
+        console.log('Testing Astronomy Engine...');
+        console.log('AstronomyEngine object:', Object.keys(AstronomyEngine));
+        
+        // Create observer location using the correct API
+        const observer = new AstronomyEngine.Observer(location.latitude, location.longitude, 0);
+        console.log('Observer created:', observer);
+        
+        // Create AstroTime from date
+        const astroTime = AstronomyEngine.MakeTime(targetDate);
+        console.log('AstroTime created:', astroTime.toString());
+        
+        // Test a simple moon position calculation
+        const moonPos = AstronomyEngine.GeoMoon(astroTime);
+        console.log('Moon position:', moonPos);
+        
+        // Test illumination
+        const moonIllum = AstronomyEngine.Illumination(AstronomyEngine.Body.Moon, astroTime);
+        console.log('Moon illumination:', moonIllum);
+        
+        res.json({
+            location: `${location.city}, ${location.state}`,
+            date: date,
+            observer: observer ? observer.toString() : 'failed to create',
+            astroTime: astroTime.toString(),
+            moonPosition: moonPos,
+            moonIllumination: moonIllum,
+            availableBodies: Object.keys(AstronomyEngine.Body || {}),
+            availableDirections: AstronomyEngine.Direction || 'undefined',
+            searchRiseSetExists: typeof AstronomyEngine.SearchRiseSet
+        });
+        
+    } catch (error) {
+        res.status(500).json({ 
+            error: error.message, 
+            stack: error.stack,
+            astronomyEngineKeys: Object.keys(AstronomyEngine)
+        });
     }
 });
 

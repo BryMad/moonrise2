@@ -5,70 +5,73 @@ const MoonriseTracker = () => {
   const [zipCode, setZipCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [astronomyData, setAstronomyData] = useState(null);
-  const [multiDateData, setMultiDateData] = useState(null);
+  const [moonriseData, setMoonriseData] = useState(null);
   const [backendUrl, setBackendUrl] = useState("http://localhost:3001");
 
+  // Date range inputs with smart defaults (3 months from today)
+  const today = new Date();
+  const threeMonthsLater = new Date();
+  threeMonthsLater.setMonth(today.getMonth() + 3);
+
+  const [fromDate, setFromDate] = useState(today.toISOString().split("T")[0]);
+  const [toDate, setToDate] = useState(threeMonthsLater.toISOString().split("T")[0]);
+  const [useDefaultRange, setUseDefaultRange] = useState(true);
+
   const generateICS = () => {
-    if (!multiDateData || !multiDateData.events || multiDateData.events.length === 0) {
-      setError('No moonrise data available to export');
+    if (!moonriseData || !moonriseData.events || moonriseData.events.length === 0) {
+      setError("No moonrise data available to export");
       return;
     }
 
-    console.log('Generating ICS for events:', multiDateData.events.slice(0, 3)); // Debug first 3 events
+    console.log("Generating ICS for events:", moonriseData.events.slice(0, 3)); // Debug first 3 events
 
-    const icsEvents = multiDateData.events.map((event, index) => {
-      // Parse the moonrise time for the correct date
-      const [hours, minutes] = event.moonrise.split(':').map(Number);
-      
-      // Create date manually to avoid timezone issues
-      const [year, month, day] = event.date.split('-').map(Number);
-      const startDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
-      
-      console.log(`Event ${index}: ${event.date} ${event.moonrise} -> ${startDate.toLocaleString()}`); // Debug
-      
-      // Create 20-minute event
-      const endDate = new Date(startDate);
-      endDate.setMinutes(endDate.getMinutes() + 20);
+    const icsEvents = moonriseData.events
+      .map((event, index) => {
+        // Parse the moonrise time for the correct date
+        const [hours, minutes] = event.moonrise.split(":").map(Number);
 
-      // Format dates for ICS in local time, then convert to UTC string
-      const formatICSDate = (date) => {
-        return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-      };
+        // Create date manually to avoid timezone issues
+        const [year, month, day] = event.date.split("-").map(Number);
+        const startDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
 
-      const phaseName = getMoonPhaseName(event.moon_phase);
-      const illumination = Math.abs(parseFloat(event.moon_illumination)).toFixed(0);
+        console.log(`Event ${index}: ${event.date} ${event.moonrise} -> ${startDate.toLocaleString()}`); // Debug
 
-      return [
-        'BEGIN:VEVENT',
-        `UID:moonrise-${event.date}-${index}@moonrisetracker.com`,
-        `DTSTART:${formatICSDate(startDate)}`,
-        `DTEND:${formatICSDate(endDate)}`,
-        `SUMMARY:🌙 Moonrise - ${phaseName}`,
-        `DESCRIPTION:Moonrise at ${formatTime(event.moonrise)} after sunset (${formatTime(event.sunset)})\\n\\nMoon Phase: ${phaseName}\\nIllumination: ${illumination}%\\nSunset: ${formatTime(event.sunset)}\\nSunrise: ${formatTime(event.sunrise)}\\n\\nDate: ${formatDate(event.date)}`,
-        `LOCATION:${multiDateData.location}, ${multiDateData.state}`,
-        'BEGIN:VALARM',
-        'TRIGGER:-PT15M',
-        'ACTION:DISPLAY',
-        'DESCRIPTION:Moonrise in 15 minutes! 🌙',
-        'END:VALARM',
-        'END:VEVENT'
-      ].join('\r\n');
-    }).join('\r\n');
+        // Create 20-minute event
+        const endDate = new Date(startDate);
+        endDate.setMinutes(endDate.getMinutes() + 20);
 
-    const icsContent = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Moonrise Tracker//Moonrise Calendar//EN',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      `X-WR-CALNAME:Moonrise Times - ${multiDateData.location}`,
-      `X-WR-CALDESC:Nighttime moonrise events for ${multiDateData.location}, ${multiDateData.state}`,
-      'X-WR-TIMEZONE:UTC',
-      'REFRESH-INTERVAL;VALUE=DURATION:P1W',
-      icsEvents,
-      'END:VCALENDAR'
-    ].join('\r\n');
+        // Format dates for ICS in local time, then convert to UTC string
+        const formatICSDate = (date) => {
+          return date
+            .toISOString()
+            .replace(/[-:]/g, "")
+            .replace(/\.\d{3}/, "");
+        };
+
+        const phaseName = getMoonPhaseName(event.moon_phase);
+        const illumination = Math.abs(parseFloat(event.moon_illumination)).toFixed(0);
+
+        return [
+          "BEGIN:VEVENT",
+          `UID:moonrise-${event.date}-${index}@moonrisetracker.com`,
+          `DTSTART:${formatICSDate(startDate)}`,
+          `DTEND:${formatICSDate(endDate)}`,
+          `SUMMARY:🌙 Moonrise - ${phaseName}`,
+          `DESCRIPTION:Moonrise at ${formatTime(event.moonrise)} after sunset (${formatTime(event.sunset)})\\n\\nMoon Phase: ${phaseName}\\nIllumination: ${illumination}%\\nSunset: ${formatTime(event.sunset)}\\nSunrise: ${formatTime(event.sunrise)}\\n\\nDate: ${formatDate(event.date)}`,
+          `LOCATION:${moonriseData.location}, ${moonriseData.state}`,
+          "BEGIN:VALARM",
+          "TRIGGER:-PT15M",
+          "ACTION:DISPLAY",
+          "DESCRIPTION:Moonrise in 15 minutes! 🌙",
+          "END:VALARM",
+          "END:VEVENT",
+        ].join("\r\n");
+      })
+      .join("\r\n");
+
+    const icsContent = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Moonrise Tracker//Moonrise Calendar//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", `X-WR-CALNAME:Moonrise Times - ${moonriseData.location}`, `X-WR-CALDESC:Nighttime moonrise events for ${moonriseData.location}, ${moonriseData.state}`, "X-WR-TIMEZONE:UTC", "REFRESH-INTERVAL;VALUE=DURATION:P1W", icsEvents, "END:VCALENDAR"].join(
+      "\r\n"
+    );
 
     return icsContent;
   };
@@ -77,10 +80,10 @@ const MoonriseTracker = () => {
     const icsContent = generateICS();
     if (!icsContent) return;
 
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const link = document.createElement('a');
+    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+    const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `moonrise-calendar-${multiDateData.location.replace(/[^a-zA-Z0-9]/g, '-')}.ics`;
+    link.download = `moonrise-calendar-${moonriseData.location.replace(/[^a-zA-Z0-9]/g, "-")}.ics`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -89,12 +92,12 @@ const MoonriseTracker = () => {
 
   const formatDate = (dateString) => {
     // Parse date string manually to avoid timezone issues
-    const [year, month, day] = dateString.split('-').map(Number);
+    const [year, month, day] = dateString.split("-").map(Number);
     const date = new Date(year, month - 1, day); // month is 0-indexed
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short',
-      month: 'short', 
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -152,7 +155,7 @@ const MoonriseTracker = () => {
       const data = await response.json();
 
       if (data.status === "OK") {
-        setError(`✅ Backend connected! API Key: ${data.hasApiKey ? "Configured" : "Missing"}`);
+        setError(`✅ Backend connected! High-precision calculations ready`);
       } else {
         setError("❌ Backend responded but with issues");
       }
@@ -161,42 +164,7 @@ const MoonriseTracker = () => {
     }
   };
 
-  const fetchMultiDateData = async () => {
-    if (!zipCode.trim()) {
-      setError('Please enter a zip code');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await fetch(`${backendUrl}/api/astronomy-multi`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ zipCode, days: 90 }), // 3 months
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Multi-date data:', data); // Debug log
-      setMultiDateData(data); // Store multi-date data separately
-      setAstronomyData(null); // Clear single-date data
-      
-    } catch (err) {
-      setError(err.message || "Failed to fetch astronomy data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAstronomyData = async () => {
+  const fetchUpcomingMoonrises = async () => {
     if (!zipCode.trim()) {
       setError("Please enter a zip code");
       return;
@@ -206,12 +174,22 @@ const MoonriseTracker = () => {
     setError("");
 
     try {
-      const response = await fetch(`${backendUrl}/api/astronomy`, {
+      const requestBody = {
+        zipCode: zipCode.trim(),
+      };
+
+      // Add date range if not using defaults
+      if (!useDefaultRange) {
+        requestBody.fromDate = fromDate;
+        requestBody.toDate = toDate;
+      }
+
+      const response = await fetch(`${backendUrl}/api/astronomy-calculated`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ zipCode }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -220,16 +198,14 @@ const MoonriseTracker = () => {
       }
 
       const data = await response.json();
-      setAstronomyData(data);
-      setMultiDateData(null); // Clear multi-date data
+      console.log("Moonrise data:", data); // Debug log
+      setMoonriseData(data);
     } catch (err) {
-      setError(err.message || "Failed to fetch astronomy data");
+      setError(err.message || "Failed to fetch moonrise data");
     } finally {
       setLoading(false);
     }
   };
-
-  const isVisible = astronomyData && isNighttimeMoonrise(astronomyData.sunset, astronomyData.moonrise, astronomyData.sunrise);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 p-4">
@@ -262,33 +238,52 @@ const MoonriseTracker = () => {
                 <MapPin className="inline w-4 h-4 mr-1" />
                 US Zip Code
               </div>
-              <input type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} className="w-full px-4 py-2 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:ring-2 focus:ring-purple-400 focus:border-transparent" placeholder="Enter zip code (e.g., 90210)" onKeyDown={(e) => e.key === "Enter" && fetchAstronomyData()} />
+              <input type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} className="w-full px-4 py-2 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:ring-2 focus:ring-purple-400 focus:border-transparent" placeholder="Enter zip code (e.g., 90210)" onKeyDown={(e) => e.key === "Enter" && fetchUpcomingMoonrises()} />
             </div>
 
-            <button onClick={fetchAstronomyData} disabled={loading} className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 mb-2">
+            {/* Date Range Selection */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="w-4 h-4 text-white" />
+                <span className="text-sm font-medium text-white">Date Range</span>
+              </div>
+
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-white cursor-pointer">
+                  <input type="radio" checked={useDefaultRange} onChange={() => setUseDefaultRange(true)} className="text-purple-600 focus:ring-purple-400" />
+                  <span className="text-sm">Next 3 months (recommended)</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-white cursor-pointer">
+                  <input type="radio" checked={!useDefaultRange} onChange={() => setUseDefaultRange(false)} className="text-purple-600 focus:ring-purple-400" />
+                  <span className="text-sm">Custom date range</span>
+                </label>
+
+                {!useDefaultRange && (
+                  <div className="grid grid-cols-2 gap-3 mt-3 pl-6">
+                    <div>
+                      <label className="block text-xs text-purple-200 mb-1">From</label>
+                      <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg bg-white/20 border border-white/30 text-white focus:ring-2 focus:ring-purple-400 focus:border-transparent" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-purple-200 mb-1">To</label>
+                      <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg bg-white/20 border border-white/30 text-white focus:ring-2 focus:ring-purple-400 focus:border-transparent" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button onClick={fetchUpcomingMoonrises} disabled={loading} className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2">
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Loading...
+                  Calculating...
                 </>
               ) : (
                 <>
                   <Moon className="w-4 h-4" />
-                  Check Today's Moonrise
-                </>
-              )}
-            </button>
-
-            <button onClick={fetchMultiDateData} disabled={loading} className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-800 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2">
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <Clock className="w-4 h-4" />
-                  Get Next 3 Months
+                  Get Upcoming Moonrises
                 </>
               )}
             </button>
@@ -302,83 +297,20 @@ const MoonriseTracker = () => {
           )}
         </div>
 
-        {astronomyData && (
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">{astronomyData.location}</h2>
-              <p className="text-purple-200">
-                {new Date().toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg">
-                  <Sun className="w-6 h-6 text-orange-400" />
-                  <div>
-                    <p className="text-white font-medium">Sunset</p>
-                    <p className="text-orange-200">{formatTime(astronomyData.sunset)}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg">
-                  <Moon className="w-6 h-6 text-yellow-300" />
-                  <div>
-                    <p className="text-white font-medium">Moonrise</p>
-                    <p className="text-yellow-200">{formatTime(astronomyData.moonrise)}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg">
-                  <Sun className="w-6 h-6 text-yellow-400" />
-                  <div>
-                    <p className="text-white font-medium">Sunrise (Next Day)</p>
-                    <p className="text-yellow-200">{formatTime(astronomyData.sunrise)}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="text-center p-4 bg-white/10 rounded-lg">
-                  <div className="text-6xl mb-2">{getMoonPhaseIcon(astronomyData.moon_phase)}</div>
-                  <p className="text-white font-medium">{getMoonPhaseName(astronomyData.moon_phase)}</p>
-                  <p className="text-purple-200 text-sm">Phase: {(parseFloat(astronomyData.moon_phase) * 100).toFixed(1)}%</p>
-                </div>
-
-                <div className={`p-4 rounded-lg border-2 ${isVisible ? "bg-green-500/20 border-green-400/50 text-green-200" : "bg-red-500/20 border-red-400/50 text-red-200"}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-5 h-5" />
-                    <p className="font-medium">{isVisible ? "Visible Tonight!" : "Not Visible Tonight"}</p>
-                  </div>
-                  <p className="text-sm">{isVisible ? "The moon will rise during nighttime hours and be visible in the dark sky." : "The moon rises during daylight hours and won't be prominently visible at night."}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-center text-purple-200 text-sm">
-              <p>
-                Coordinates: {astronomyData.lat}°, {astronomyData.long}°
-              </p>
-            </div>
-          </div>
-        )}
-
-        {multiDateData && (
+        {moonriseData && (
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-white mb-2">
-                🌙 {multiDateData.location}
+                🌙 {moonriseData.location}
               </h2>
               <p className="text-purple-200">
-                {multiDateData.totalEvents} watchable moonrises in next {multiDateData.daysSearched} days
+                {moonriseData.totalEvents} watchable moonrises found
               </p>
               <p className="text-purple-300 text-sm mb-4">
-                {multiDateData.state}, {multiDateData.country}
+                {moonriseData.state}, {moonriseData.country} • {moonriseData.dateRange.from} to {moonriseData.dateRange.to}
+              </p>
+              <p className="text-purple-400 text-xs mb-4">
+                {moonriseData.calculationMethod} • {moonriseData.accuracy}
               </p>
               
               <button
@@ -393,7 +325,7 @@ const MoonriseTracker = () => {
             </div>
 
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {multiDateData.events.map((event, index) => (
+              {moonriseData.events.map((event, index) => (
                 <div key={index} className="flex items-center gap-4 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
                   <div className="text-4xl">
                     {getMoonPhaseIcon(event.moon_phase)}
@@ -407,6 +339,7 @@ const MoonriseTracker = () => {
                     </p>
                     <p className="text-purple-300 text-xs">
                       Sunset: {formatTime(event.sunset)} • Moonrise: {formatTime(event.moonrise)}
+                      {event.calculation_method && ` • ${event.calculation_method}`}
                     </p>
                   </div>
                   <div className="text-right">
@@ -418,7 +351,7 @@ const MoonriseTracker = () => {
             </div>
 
             <div className="text-center text-purple-200 text-sm mt-4">
-              <p>Coordinates: {multiDateData.lat}°, {multiDateData.long}°</p>
+              <p>Coordinates: {moonriseData.lat}°, {moonriseData.long}°</p>
             </div>
           </div>
         )}
