@@ -8,18 +8,35 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-backend/node_modules
-frontend/node_modules
-dist
-dist-ssr
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Build outputs
+dist/
+frontend/dist/
+build/
+dist-ssr/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+# Runtime and cache
 *.local
+.cache/
 
 # Editor directories and files
 .vscode/*
-.env
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 Thumbs.db
 *.suo
@@ -28,14 +45,35 @@ Thumbs.db
 *.sln
 *.sw?
 
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
 # Virtual environment
 venv/
 env/
 
-# Python bytecode
+# Python bytecode (if any)
 __pycache__/
 *.pyc
 
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
 
-# TODO Build directories?
-# build/
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Production builds (uncomment if you want to ignore them)
+# frontend/dist/

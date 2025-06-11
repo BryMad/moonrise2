@@ -5,14 +5,25 @@ const SunCalc = require('suncalc'); // npm install suncalc
 const { find } = require('geo-tz'); // npm install geo-tz
 const A = require('meeusjs'); // npm install meeusjs
 const AstronomyEngine = require('astronomy-engine'); // npm install astronomy-engine
+const path = require('path');
 require('dotenv').config(); // npm install dotenv
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from the React build in production
+if (NODE_ENV === 'production') {
+    // Serve static files from the frontend build directory
+    const frontendBuildPath = path.join(__dirname, '../frontend/dist');
+    app.use(express.static(frontendBuildPath));
+    
+    console.log(`📁 Serving static files from: ${frontendBuildPath}`);
+}
 
 // Your IPGeolocation API key (store in .env file)
 const API_KEY = process.env.IPGEOLOCATION_API_KEY;
@@ -1567,15 +1578,32 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
         message: 'Moonrise Tracker API is running',
+        environment: NODE_ENV,
         hasApiKey: !!API_KEY
     });
 });
 
+// Catch-all handler: send back React's index.html file in production
+if (NODE_ENV === 'production') {
+    app.get('*', (req, res) => {
+        const frontendBuildPath = path.join(__dirname, '../frontend/dist');
+        res.sendFile(path.join(frontendBuildPath, 'index.html'));
+    });
+}
+
 // Start server
 app.listen(PORT, () => {
     console.log(`🌙 Moonrise Tracker API running on port ${PORT}`);
+    console.log(`🌍 Environment: ${NODE_ENV}`);
     console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
     console.log(`🔑 API Key configured: ${!!API_KEY}`);
+    
+    if (NODE_ENV === 'production') {
+        console.log(`🎯 Frontend served from: ${path.join(__dirname, '../frontend/dist')}`);
+        console.log(`🚀 Full application available at: http://localhost:${PORT}`);
+    } else {
+        console.log(`🔧 Development mode: Frontend should run separately on port 5177`);
+    }
 });
 
 module.exports = app;

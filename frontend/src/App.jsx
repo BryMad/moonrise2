@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Moon, Sun, Clock, MapPin, AlertCircle, Server, Search, X } from "lucide-react";
+import { Moon, Sun, Clock, MapPin, AlertCircle, Search, X } from "lucide-react";
+import { apiFetch, logApiConfig } from "./config/api.js";
 
 const MoonriseTracker = () => {
   const [locationInput, setLocationInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [moonriseData, setMoonriseData] = useState(null);
-  const [backendUrl, setBackendUrl] = useState("http://localhost:3001");
-  
+
   // Autocomplete state
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -17,8 +17,10 @@ const MoonriseTracker = () => {
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
 
-  // Geoapify API key - you'll need to get this free from https://myprojects.geoapify.com/
-  const GEOAPIFY_API_KEY = "YOUR_GEOAPIFY_API_KEY"; // Replace with your actual API key
+  // Log API configuration on mount for debugging
+  useEffect(() => {
+    logApiConfig();
+  }, []);
 
   // Autocomplete search function
   const searchLocations = async (query) => {
@@ -29,14 +31,13 @@ const MoonriseTracker = () => {
     }
 
     setIsSearching(true);
-    
+
     try {
       // Use our backend's flexible location search as primary
       // This leverages IPGeolocation API that's already configured
-      const backendResponse = await fetch(`${backendUrl}/api/location-search`, {
+      const backendResponse = await apiFetch("/api/location-search", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ query }),
       });
 
       if (backendResponse.ok) {
@@ -49,47 +50,29 @@ const MoonriseTracker = () => {
         }
       }
 
-      // Fallback to Geoapify if backend doesn't return results
-      if (GEOAPIFY_API_KEY && GEOAPIFY_API_KEY !== "YOUR_GEOAPIFY_API_KEY") {
-        const geoapifyUrl = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&apiKey=${GEOAPIFY_API_KEY}&format=json&limit=8`;
-        const response = await fetch(geoapifyUrl);
-        
-        if (response.ok) {
-          const data = await response.json();
-          const formattedSuggestions = data.results?.map(result => ({
-            display_name: result.formatted,
-            city: result.city || result.state || result.country,
-            state: result.state,
-            country: result.country,
-            lat: result.lat,
-            lon: result.lon,
-            source: 'geoapify'
-          })) || [];
-          
-          setSuggestions(formattedSuggestions);
-          setShowSuggestions(formattedSuggestions.length > 0);
-        }
-      } else {
-        // No external APIs available, use simple matching
-        setSuggestions([{
+      // Fallback to manual entry if backend doesn't return results
+      setSuggestions([
+        {
           display_name: query,
           city: query,
-          state: '',
-          country: '',
-          source: 'manual'
-        }]);
-        setShowSuggestions(true);
-      }
+          state: "",
+          country: "",
+          source: "manual",
+        },
+      ]);
+      setShowSuggestions(true);
     } catch (err) {
-      console.warn('Autocomplete search failed:', err);
+      console.warn("Autocomplete search failed:", err);
       // Allow manual entry as fallback
-      setSuggestions([{
-        display_name: query,
-        city: query,
-        state: '',
-        country: '',
-        source: 'manual'
-      }]);
+      setSuggestions([
+        {
+          display_name: query,
+          city: query,
+          state: "",
+          country: "",
+          source: "manual",
+        },
+      ]);
       setShowSuggestions(true);
     } finally {
       setIsSearching(false);
@@ -100,12 +83,12 @@ const MoonriseTracker = () => {
   const handleInputChange = (value) => {
     setLocationInput(value);
     setSelectedIndex(-1);
-    
+
     // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    
+
     // Set new timeout for search
     searchTimeoutRef.current = setTimeout(() => {
       searchLocations(value);
@@ -118,7 +101,7 @@ const MoonriseTracker = () => {
     setSuggestions([]);
     setShowSuggestions(false);
     setSelectedIndex(-1);
-    
+
     // Focus back on input
     if (inputRef.current) {
       inputRef.current.focus();
@@ -128,26 +111,22 @@ const MoonriseTracker = () => {
   // Handle keyboard navigation
   const handleKeyDown = (e) => {
     if (!showSuggestions || suggestions.length === 0) {
-      if (e.key === 'Enter') {
+      if (e.key === "Enter") {
         fetchUpcomingMoonrises();
       }
       return;
     }
 
     switch (e.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < suggestions.length - 1 ? prev + 1 : 0
-        );
+        setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         e.preventDefault();
-        setSelectedIndex(prev => 
-          prev > 0 ? prev - 1 : suggestions.length - 1
-        );
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
         break;
-      case 'Enter':
+      case "Enter":
         e.preventDefault();
         if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
           selectSuggestion(suggestions[selectedIndex]);
@@ -155,7 +134,7 @@ const MoonriseTracker = () => {
           fetchUpcomingMoonrises();
         }
         break;
-      case 'Escape':
+      case "Escape":
         setSuggestions([]);
         setShowSuggestions(false);
         setSelectedIndex(-1);
@@ -168,15 +147,14 @@ const MoonriseTracker = () => {
   // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target) &&
-          inputRef.current && !inputRef.current.contains(event.target)) {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target) && inputRef.current && !inputRef.current.contains(event.target)) {
         setShowSuggestions(false);
         setSelectedIndex(-1);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Clear search on cleanup
@@ -238,7 +216,7 @@ const MoonriseTracker = () => {
           `DTEND:${formatICSDate(endDate)}`,
           `SUMMARY:🌙 Moonrise - ${phaseName}`,
           `DESCRIPTION:Moonrise at ${formatTime(event.moonrise)} after sunset (${formatTime(event.sunset)})\\n\\nMoon Phase: ${phaseName}\\nIllumination: ${illumination}%\\nSunset: ${formatTime(event.sunset)}\\nSunrise: ${formatTime(event.sunrise)}\\n\\nDate: ${formatDate(event.date)}`,
-          `LOCATION:${moonriseData.location}${moonriseData.state ? `, ${moonriseData.state}` : ''}`,
+          `LOCATION:${moonriseData.location}${moonriseData.state ? `, ${moonriseData.state}` : ""}`,
           "BEGIN:VALARM",
           "TRIGGER:-PT15M",
           "ACTION:DISPLAY",
@@ -249,20 +227,8 @@ const MoonriseTracker = () => {
       })
       .join("\r\n");
 
-    const locationName = `${moonriseData.location}${moonriseData.state ? `, ${moonriseData.state}` : ''}`;
-    const icsContent = [
-      "BEGIN:VCALENDAR", 
-      "VERSION:2.0", 
-      "PRODID:-//Moonrise Tracker//Moonrise Calendar//EN", 
-      "CALSCALE:GREGORIAN", 
-      "METHOD:PUBLISH", 
-      `X-WR-CALNAME:Moonrise Times - ${locationName}`, 
-      `X-WR-CALDESC:Nighttime moonrise events for ${locationName}`, 
-      "X-WR-TIMEZONE:UTC", 
-      "REFRESH-INTERVAL;VALUE=DURATION:P1W", 
-      icsEvents, 
-      "END:VCALENDAR"
-    ].join("\r\n");
+    const locationName = `${moonriseData.location}${moonriseData.state ? `, ${moonriseData.state}` : ""}`;
+    const icsContent = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Moonrise Tracker//Moonrise Calendar//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", `X-WR-CALNAME:Moonrise Times - ${locationName}`, `X-WR-CALDESC:Nighttime moonrise events for ${locationName}`, "X-WR-TIMEZONE:UTC", "REFRESH-INTERVAL;VALUE=DURATION:P1W", icsEvents, "END:VCALENDAR"].join("\r\n");
 
     return icsContent;
   };
@@ -274,11 +240,11 @@ const MoonriseTracker = () => {
     const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    
+
     // Create safe filename from location
-    const locationName = `${moonriseData.location}${moonriseData.state ? `-${moonriseData.state}` : ''}`;
+    const locationName = `${moonriseData.location}${moonriseData.state ? `-${moonriseData.state}` : ""}`;
     const safeLocationName = locationName.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "-");
-    
+
     link.download = `moonrise-calendar-${safeLocationName}.ics`;
     document.body.appendChild(link);
     link.click();
@@ -347,7 +313,7 @@ const MoonriseTracker = () => {
 
   const testBackendConnection = async () => {
     try {
-      const response = await fetch(`${backendUrl}/api/health`);
+      const response = await apiFetch("/api/health");
       const data = await response.json();
 
       if (data.status === "OK") {
@@ -373,7 +339,7 @@ const MoonriseTracker = () => {
       const requestBody = {
         location: locationInput.trim(),
         // Keep zipCode for backward compatibility if it looks like a ZIP
-        ...((/^\d{5}(-\d{4})?$/.test(locationInput.trim())) && { zipCode: locationInput.trim() })
+        ...(/^\d{5}(-\d{4})?$/.test(locationInput.trim()) && { zipCode: locationInput.trim() }),
       };
 
       // Add date range if not using defaults
@@ -382,11 +348,8 @@ const MoonriseTracker = () => {
         requestBody.toDate = toDate;
       }
 
-      const response = await fetch(`${backendUrl}/api/astronomy-calculated`, {
+      const response = await apiFetch("/api/astronomy-calculated", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(requestBody),
       });
 
@@ -411,50 +374,35 @@ const MoonriseTracker = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Moon className="w-8 h-8 text-yellow-300" />
-            <h1 className="text-4xl font-bold text-white">Nighttime Moonrise Tracker</h1>
+            <h1 className="text-4xl font-bold text-white">Moonrise Tracker</h1>
           </div>
-          <p className="text-purple-200">Discover when the moon rises during nighttime hours in your area</p>
+          <p className="text-sm text-purple-200">Discover when the moon rises during night hours in your area! </p> <p className="text-sm text-purple-200">Enter your zip or city below to get moonrise times and an importable calendar. </p>
         </div>
 
         <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-6">
           <div className="space-y-4">
-            <div>
-              <div className="block text-sm font-medium text-white mb-2">
-                <Server className="inline w-4 h-4 mr-1" />
-                Backend URL
-              </div>
-              <div className="flex gap-2">
-                <input type="text" value={backendUrl} onChange={(e) => setBackendUrl(e.target.value)} className="flex-1 px-4 py-2 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:ring-2 focus:ring-purple-400 focus:border-transparent" placeholder="http://localhost:3001" />
-                <button onClick={testBackendConnection} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                  Test
-                </button>
-              </div>
-            </div>
-
             <div className="relative">
               <div className="block text-sm font-medium text-white mb-2">
                 <MapPin className="inline w-4 h-4 mr-1" />
-                Location (ZIP Code, City, or Address)
+                Location (enter ZIP Code or City)
               </div>
               <div className="relative">
-                <input 
+                <input
                   ref={inputRef}
-                  type="text" 
-                  value={locationInput} 
+                  type="text"
+                  value={locationInput}
                   onChange={(e) => handleInputChange(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="w-full px-4 py-2 pr-10 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:ring-2 focus:ring-purple-400 focus:border-transparent" 
-                  placeholder="Numbers for ZIP codes, letters for cities..." 
+                  className="w-full px-4 py-2 pr-10 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                  placeholder="Numbers for ZIP codes, letters for cities..."
                   autoComplete="off"
                 />
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                  {isSearching && (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  )}
+                  {isSearching && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
                   {locationInput && (
                     <button
                       onClick={() => {
-                        setLocationInput('');
+                        setLocationInput("");
                         setSuggestions([]);
                         setShowSuggestions(false);
                         if (inputRef.current) inputRef.current.focus();
@@ -466,29 +414,16 @@ const MoonriseTracker = () => {
                   )}
                   <Search className="w-4 h-4 text-white/60" />
                 </div>
-                
+
                 {/* Autocomplete Dropdown */}
                 {showSuggestions && suggestions.length > 0 && (
-                  <div 
-                    ref={suggestionsRef}
-                    className="absolute top-full left-0 right-0 z-50 mt-1 bg-white/95 backdrop-blur-md rounded-lg border border-white/20 shadow-xl max-h-60 overflow-y-auto"
-                  >
+                  <div ref={suggestionsRef} className="absolute top-full left-0 right-0 z-50 mt-1 bg-white/95 backdrop-blur-md rounded-lg border border-white/20 shadow-xl max-h-60 overflow-y-auto">
                     {suggestions.map((suggestion, index) => (
-                      <div
-                        key={`${suggestion.display_name}-${index}`}
-                        onClick={() => selectSuggestion(suggestion)}
-                        className={`px-4 py-3 cursor-pointer transition-colors border-b border-white/10 last:border-b-0 ${
-                          index === selectedIndex 
-                            ? 'bg-purple-500/20 text-purple-900' 
-                            : 'text-gray-800 hover:bg-purple-100/50'
-                        }`}
-                      >
+                      <div key={`${suggestion.display_name}-${index}`} onClick={() => selectSuggestion(suggestion)} className={`px-4 py-3 cursor-pointer transition-colors border-b border-white/10 last:border-b-0 ${index === selectedIndex ? "bg-purple-500/20 text-purple-900" : "text-gray-800 hover:bg-purple-100/50"}`}>
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-purple-600 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">
-                              {suggestion.display_name}
-                            </div>
+                            <div className="font-medium truncate">{suggestion.display_name}</div>
                             {suggestion.city && suggestion.city !== suggestion.display_name && (
                               <div className="text-sm text-gray-600 truncate">
                                 {suggestion.city}
@@ -496,22 +431,10 @@ const MoonriseTracker = () => {
                                 {suggestion.country && `, ${suggestion.country}`}
                               </div>
                             )}
-                            {suggestion.query_used && suggestion.query_used !== suggestion.display_name && (
-                              <div className="text-xs text-gray-500 truncate">
-                                📍 Found via: {suggestion.query_used}
-                              </div>
-                            )}
+                            {suggestion.query_used && suggestion.query_used !== suggestion.display_name && <div className="text-xs text-gray-500 truncate">📍 Found via: {suggestion.query_used}</div>}
                           </div>
-                          {suggestion.source === 'geoapify' && (
-                            <div className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">
-                              🌍
-                            </div>
-                          )}
-                          {suggestion.source === 'ipgeolocation' && (
-                            <div className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                              📍
-                            </div>
-                          )}
+                          {suggestion.source === "geoapify" && <div className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">🌍</div>}
+                          {suggestion.source === "ipgeolocation" && <div className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">📍</div>}
                         </div>
                       </div>
                     ))}
@@ -519,22 +442,13 @@ const MoonriseTracker = () => {
                 )}
               </div>
               <div className="mt-1 text-xs text-purple-300">
-                💡 <strong>Simple search:</strong> Type numbers for ZIP codes (7, 75, 752, 75205) or letters for cities (Austin, Los Angeles)
-                {locationInput && /^\d+$/.test(locationInput.trim()) && (
-                  <div className="mt-1 text-green-300">
-                    🔢 Searching ZIP codes for "{locationInput}"
-                  </div>
-                )}
-                {locationInput && /^[a-zA-Z\s]+$/.test(locationInput.trim()) && (
-                  <div className="mt-1 text-blue-300">
-                    🏙️ Searching cities for "{locationInput}"
-                  </div>
-                )}
+                {locationInput && /^\d+$/.test(locationInput.trim()) && <div className="mt-1 text-green-300">🔢 Searching ZIP codes for "{locationInput}"</div>}
+                {locationInput && /^[a-zA-Z\s]+$/.test(locationInput.trim()) && <div className="mt-1 text-blue-300">🏙️ Searching cities for "{locationInput}"</div>}
               </div>
             </div>
 
             {/* Date Range Selection */}
-            <div>
+            <div className="mt-10">
               <div className="flex items-center gap-2 mb-3">
                 <Clock className="w-4 h-4 text-white" />
                 <span className="text-sm font-medium text-white">Date Range</span>
@@ -592,28 +506,18 @@ const MoonriseTracker = () => {
         {moonriseData && (
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">
-                🌙 {moonriseData.location}
-              </h2>
-              <p className="text-purple-200">
-                {moonriseData.totalEvents} watchable moonrises found
-              </p>
+              <h2 className="text-2xl font-bold text-white mb-2">🌙 {moonriseData.location}</h2>
+              <p className="text-purple-200">{moonriseData.totalEvents} watchable moonrises found</p>
               <p className="text-purple-300 text-sm mb-2">
-                {moonriseData.state && `${moonriseData.state}, `}{moonriseData.country} • {moonriseData.dateRange.from} to {moonriseData.dateRange.to}
+                {moonriseData.state && `${moonriseData.state}, `}
+                {moonriseData.country} • {moonriseData.dateRange.from} to {moonriseData.dateRange.to}
               </p>
-              {moonriseData.originalInput && moonriseData.originalInput !== moonriseData.location && (
-                <p className="text-purple-400 text-xs mb-2">
-                  📍 Searched for: "{moonriseData.originalInput}"
-                </p>
-              )}
+              {moonriseData.originalInput && moonriseData.originalInput !== moonriseData.location && <p className="text-purple-400 text-xs mb-2">📍 Searched for: "{moonriseData.originalInput}"</p>}
               <p className="text-purple-400 text-xs mb-4">
                 {moonriseData.calculationMethod} • {moonriseData.accuracy}
               </p>
-              
-              <button
-                onClick={downloadICS}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 mx-auto"
-              >
+
+              <button onClick={downloadICS} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 mx-auto">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -624,9 +528,7 @@ const MoonriseTracker = () => {
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {moonriseData.events.map((event, index) => (
                 <div key={index} className="flex items-center gap-4 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                  <div className="text-4xl">
-                    {getMoonPhaseIcon(event.moon_phase)}
-                  </div>
+                  <div className="text-4xl">{getMoonPhaseIcon(event.moon_phase)}</div>
                   <div className="flex-1">
                     <p className="text-white font-medium">
                       {formatDate(event.date)} - {formatTime(event.moonrise)}
@@ -639,16 +541,14 @@ const MoonriseTracker = () => {
                       {event.calculation_method && ` • ${event.calculation_method}`}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-green-400 text-sm font-medium">Visible</p>
-                    <p className="text-green-300 text-xs">After sunset</p>
-                  </div>
                 </div>
               ))}
             </div>
 
             <div className="text-center text-purple-200 text-sm mt-4">
-              <p>Coordinates: {moonriseData.lat}°, {moonriseData.long}°</p>
+              <p>
+                Coordinates: {moonriseData.lat}°, {moonriseData.long}°
+              </p>
             </div>
           </div>
         )}
