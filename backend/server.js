@@ -17,34 +17,69 @@ app.use(express.json());
 // Your IPGeolocation API key (store in .env file)
 const API_KEY = process.env.IPGEOLOCATION_API_KEY;
 
-// Helper function to get lat/long from zip code
-const getLocationFromZip = async (zipCode) => {
+// Helper function to get lat/long from any location input (zip code, city, address, etc.)
+const getLocationFromInput = async (locationInput) => {
     if (!API_KEY) {
         throw new Error('API key not configured');
     }
 
-    // Format location for US zip codes
-    let formattedLocation = zipCode.trim();
+    if (!locationInput || !locationInput.trim()) {
+        throw new Error('Location input is required');
+    }
+
+    let formattedLocation = locationInput.trim();
+    
+    // Handle different input formats
     if (/^\d{5}(-\d{4})?$/.test(formattedLocation)) {
+        // US ZIP code - add country for better accuracy
+        formattedLocation = `${formattedLocation}, US`;
+    } else if (/^[a-zA-Z\s]+$/.test(formattedLocation) && !formattedLocation.includes(',')) {
+        // Single word city name without state/country - keep as is to let API handle it
+        // Examples: "Dallas", "Phoenix", "Miami"
+        formattedLocation = formattedLocation;
+    } else if (/^[a-zA-Z\s]+,\s*[a-zA-Z]{2}$/.test(formattedLocation)) {
+        // City, State abbreviation (e.g., "Los Angeles, CA") - add US
+        formattedLocation = `${formattedLocation}, US`;
+    } else if (/^[a-zA-Z\s]+,\s*[a-zA-Z\s]+$/.test(formattedLocation) && 
+               !formattedLocation.toLowerCase().includes('us') && 
+               !formattedLocation.toLowerCase().includes('usa') && 
+               !formattedLocation.toLowerCase().includes('united states')) {
+        // City, State full name (e.g., "Austin, Texas") - add US if not already specified
         formattedLocation = `${formattedLocation}, US`;
     }
+    // For addresses or international locations, use as-is
+
+    console.log(`Location input: "${locationInput}" -> formatted: "${formattedLocation}"`);
 
     const url = `https://api.ipgeolocation.io/v2/astronomy?apiKey=${API_KEY}&location=${encodeURIComponent(formattedLocation)}`;
     const response = await fetch(url);
     
     if (!response.ok) {
-        throw new Error(`Location lookup failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`Location lookup failed for "${formattedLocation}":`, errorText);
+        throw new Error(`Location not found. Please check spelling and try: ZIP code (90210), City (Los Angeles), or City, State (Los Angeles, CA)`);
     }
     
     const data = await response.json();
+    
+    // Validate that we got location data
+    if (!data.location || (!data.location.latitude && !data.location.longitude)) {
+        throw new Error(`Invalid location data received for "${locationInput}"`);
+    }
+    
     return {
         latitude: parseFloat(data.location.latitude),
         longitude: parseFloat(data.location.longitude),
-        city: data.location.city || data.location.location_string,
-        state: data.location.state_prov,
-        country: data.location.country_name
+        city: data.location.city || data.location.location_string || locationInput,
+        state: data.location.state_prov || '',
+        country: data.location.country_name || 'Unknown',
+        originalInput: locationInput,
+        formattedLocation: formattedLocation
     };
 };
+
+// Backward compatibility alias
+const getLocationFromZip = getLocationFromInput;
 
 // Helper function to convert AstroTime to local time string
 const astroTimeToLocalTime = (astroTime, lat, lng) => {
@@ -78,11 +113,22 @@ const getAstronomyEngineCalculations = (date, lat, lng) => {
         // Create observer location using correct API
         const observer = new AstronomyEngine.Observer(lat, lng, 0); // elevation in meters
         
-        // Create AstroTime from date
-        const astroTime = AstronomyEngine.MakeTime(date);
+        // Create AstroTime from date - but we need to be careful about local vs UTC date handling
+        // The issue is likely that we're passing a Date that represents local midnight, 
+        // but AstronomyEngine interprets it as UTC
         
-        console.log(`Astronomy Engine: Calculating for ${date.toISOString()} at ${lat}, ${lng}`);
-        console.log(`Observer created:`, observer);
+        console.log(`Astronomy Engine: Input date: ${date.toISOString()}`);
+        console.log(`Astronomy Engine: Local date string: ${date.toString()}`);
+        
+        // Create a date that represents local noon for the target date to avoid timezone issues
+        const localDateString = date.toISOString().split('T')[0]; // Get YYYY-MM-DD
+        const localNoon = new Date(localDateString + 'T12:00:00'); // Local noon
+        
+        console.log(`Astronomy Engine: Using search start time: ${localNoon.toISOString()}`);
+        
+        const astroTime = AstronomyEngine.MakeTime(localNoon);
+        
+        console.log(`Astronomy Engine: Calculating for ${localDateString} at ${lat}, ${lng}`);
         console.log(`AstroTime created:`, astroTime.toString());
         
         // Calculate sunrise and sunset (search within 1 day)
@@ -119,6 +165,7 @@ const getAstronomyEngineCalculations = (date, lat, lng) => {
         return null;
     }
 };
+        
 
 // Helper function to format time from Date object to HH:MM format in local timezone
 const formatTime = (date, lat, lng) => {
@@ -248,26 +295,36 @@ const getMoonPhaseName = (phase) => {
 // New calculated astronomy endpoint
 app.post('/api/astronomy-calculated', async (req, res) => {
     try {
-        const { zipCode, fromDate, toDate, days = 30 } = req.body;
+        const { zipCode, location, fromDate, toDate, days = 30 } = req.body;
 
-        if (!zipCode) {
-            return res.status(400).json({ error: 'Zip code is required' });
+        // Accept either 'zipCode' (backward compatibility) or 'location' parameter
+        const locationInput = location || zipCode;
+        
+        if (!locationInput) {
+            return res.status(400).json({ 
+                error: 'Location is required',
+                examples: 'Try: "90210", "Los Angeles", "Austin, TX", or "1600 Pennsylvania Ave, Washington DC"'
+            });
         }
 
-        console.log(`Calculating astronomy data for ${zipCode}, days: ${days}`);
+        console.log(`Calculating astronomy data for location: "${locationInput}", days: ${days}`);
 
-        // Get location coordinates from zip code (single API call)
-        const location = await getLocationFromZip(zipCode);
-        console.log(`Location found: ${location.city}, ${location.state} (${location.latitude}, ${location.longitude})`);
+        // Get location coordinates from input (supports zip codes, cities, addresses, etc.)
+        const locationData = await getLocationFromInput(locationInput);
+        console.log(`Location found: ${locationData.city}, ${locationData.state} (${locationData.latitude}, ${locationData.longitude})`);
 
-        // Calculate date range
+        // Calculate date range - handle timezone issues properly
         let startDate, endDate;
         if (fromDate && toDate) {
-            startDate = new Date(fromDate);
-            endDate = new Date(toDate);
+            // Parse dates as local dates, not UTC
+            // This prevents timezone offset issues
+            startDate = new Date(fromDate + 'T00:00:00'); // Force local interpretation
+            endDate = new Date(toDate + 'T00:00:00');
         } else {
             startDate = new Date();
-            endDate = new Date();
+            // Reset to start of local day
+            startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(startDate);
             endDate.setDate(startDate.getDate() + days);
         }
 
@@ -285,10 +342,16 @@ app.post('/api/astronomy-calculated', async (req, res) => {
         const currentDate = new Date(startDate);
 
         while (currentDate <= endDate) {
-            const dateString = currentDate.toISOString().split('T')[0];
+            // Create dateString in local timezone format
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(currentDate.getDate()).padStart(2, '0');
+            const dateString = `${year}-${month}-${day}`;
+            
+            console.log(`Processing date: ${dateString} (currentDate: ${currentDate.toString()})`);
             
             // Calculate all astronomical data for this date using Astronomy Engine (primary)
-            const astronomyEngineData = getAstronomyEngineCalculations(currentDate, location.latitude, location.longitude);
+            const astronomyEngineData = getAstronomyEngineCalculations(currentDate, locationData.latitude, locationData.longitude);
             
             // Fallback to SunCalc if Astronomy Engine fails
             let astronomicalData = astronomyEngineData;
@@ -296,15 +359,15 @@ app.post('/api/astronomy-calculated', async (req, res) => {
             
             if (!astronomyEngineData) {
                 console.warn(`Astronomy Engine failed for ${dateString}, falling back to SunCalc`);
-                const sunTimes = SunCalc.getTimes(currentDate, location.latitude, location.longitude);
-                const moonTimes = SunCalc.getMoonTimes(currentDate, location.latitude, location.longitude);
+                const sunTimes = SunCalc.getTimes(currentDate, locationData.latitude, locationData.longitude);
+                const moonTimes = SunCalc.getMoonTimes(currentDate, locationData.latitude, locationData.longitude);
                 const moonIllumination = SunCalc.getMoonIllumination(currentDate);
                 
                 astronomicalData = {
-                    sunrise: formatTime(sunTimes.sunrise, location.latitude, location.longitude),
-                    sunset: formatTime(sunTimes.sunset, location.latitude, location.longitude),
-                    moonrise: formatTime(moonTimes.rise, location.latitude, location.longitude),
-                    moonset: formatTime(moonTimes.set, location.latitude, location.longitude),
+                    sunrise: formatTime(sunTimes.sunrise, locationData.latitude, locationData.longitude),
+                    sunset: formatTime(sunTimes.sunset, locationData.latitude, locationData.longitude),
+                    moonrise: formatTime(moonTimes.rise, locationData.latitude, locationData.longitude),
+                    moonset: formatTime(moonTimes.set, locationData.latitude, locationData.longitude),
                     moon_phase: moonIllumination.phase,
                     moon_illumination: (moonIllumination.fraction * 100).toFixed(1)
                 };
@@ -318,12 +381,12 @@ app.post('/api/astronomy-calculated', async (req, res) => {
                 nextDay.setDate(nextDay.getDate() + 1);
                 
                 let nextSunrise;
-                const nextMeeusData = getMeeusCalculations(nextDay, location.latitude, location.longitude);
+                const nextMeeusData = getMeeusCalculations(nextDay, locationData.latitude, locationData.longitude);
                 if (nextMeeusData && nextMeeusData.sunrise) {
                     nextSunrise = nextMeeusData.sunrise;
                 } else {
-                    const nextSunTimes = SunCalc.getTimes(nextDay, location.latitude, location.longitude);
-                    nextSunrise = formatTime(nextSunTimes.sunrise, location.latitude, location.longitude);
+                    const nextSunTimes = SunCalc.getTimes(nextDay, locationData.latitude, locationData.longitude);
+                    nextSunrise = formatTime(nextSunTimes.sunrise, locationData.latitude, locationData.longitude);
                 }
                 
                 // Check if this is a nighttime moonrise
@@ -352,12 +415,15 @@ app.post('/api/astronomy-calculated', async (req, res) => {
         }
 
         const result = {
-            location: location.city,
-            lat: location.latitude,
-            long: location.longitude,
-            country: location.country,
-            state: location.state,
-            zipCode: zipCode,
+            location: locationData.city,
+            lat: locationData.latitude,
+            long: locationData.longitude,
+            country: locationData.country,
+            state: locationData.state,
+            zipCode: zipCode || null, // Keep for backward compatibility
+            locationInput: locationInput, // New field showing what was entered
+            originalInput: locationData.originalInput,
+            formattedLocation: locationData.formattedLocation,
             totalEvents: events.length,
             daysSearched: daysDiff,
             dateRange: {
@@ -369,14 +435,15 @@ app.post('/api/astronomy-calculated', async (req, res) => {
             events: events
         };
 
-        console.log(`Found ${events.length} nighttime moonrise events in ${daysDiff} days`);
+        console.log(`Found ${events.length} nighttime moonrise events in ${daysDiff} days for ${locationData.city}, ${locationData.state}`);
         res.json(result);
 
     } catch (error) {
         console.error('Error in calculated astronomy:', error.message);
         res.status(500).json({
             error: 'Failed to calculate astronomy data',
-            details: error.message
+            details: error.message,
+            suggestion: 'Please check your location input. Try: ZIP code (90210), City (Los Angeles), or City, State (Los Angeles, CA)'
         });
     }
 });
@@ -487,33 +554,36 @@ app.post('/api/astronomy-multi', async (req, res) => {
     }
 });
 
-// Endpoint to get astronomy data by zip code
+// Endpoint to get astronomy data by location (supports zip codes, cities, addresses)
 app.post('/api/astronomy', async (req, res) => {
     try {
-        const { zipCode } = req.body;
+        const { zipCode, location } = req.body;
 
-        if (!zipCode) {
-            return res.status(400).json({ error: 'Zip code is required' });
+        // Accept either 'zipCode' (backward compatibility) or 'location' parameter
+        const locationInput = location || zipCode;
+
+        if (!locationInput) {
+            return res.status(400).json({ 
+                error: 'Location is required',
+                examples: 'Try: "90210", "Los Angeles", "Austin, TX", or "1600 Pennsylvania Ave, Washington DC"'
+            });
         }
 
         if (!API_KEY) {
             return res.status(500).json({ error: 'API key not configured' });
         }
 
-        console.log(`Fetching data for zip code: ${zipCode}`);
+        console.log(`Fetching data for location: "${locationInput}"`);
 
-        // Format location - if it's a US zip code, add ", US" for accuracy
-        let formattedLocation = zipCode.trim();
-        if (/^\d{5}(-\d{4})?$/.test(formattedLocation)) {
-            formattedLocation = `${formattedLocation}, US`;
-            console.log(`US zip code detected, formatted as: ${formattedLocation}`);
-        }
+        // Get location data using our flexible input handler
+        const locationData = await getLocationFromInput(locationInput);
+        console.log(`Location resolved: ${locationData.city}, ${locationData.state} (${locationData.latitude}, ${locationData.longitude})`);
 
         // Get today's date
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
-        // Use v2/astronomy endpoint with location parameter (same as working code)
-        const astroUrl = `https://api.ipgeolocation.io/v2/astronomy?apiKey=${API_KEY}&location=${encodeURIComponent(formattedLocation)}&date=${today}`;
+        // Use v2/astronomy endpoint with the formatted location
+        const astroUrl = `https://api.ipgeolocation.io/v2/astronomy?apiKey=${API_KEY}&location=${encodeURIComponent(locationData.formattedLocation)}&date=${today}`;
         console.log('API URL:', astroUrl);
         
         const astroResponse = await fetch(astroUrl);
@@ -527,7 +597,7 @@ app.post('/api/astronomy', async (req, res) => {
         const astroData = await astroResponse.json();
         console.log('Astronomy data:', astroData);
 
-        // Return the data in the same format as before
+        // Return the data with enhanced location information
         const result = {
             sunrise: astroData.astronomy.sunrise,
             sunset: astroData.astronomy.sunset,
@@ -535,10 +605,15 @@ app.post('/api/astronomy', async (req, res) => {
             moonset: astroData.astronomy.moonset,
             moon_phase: astroData.astronomy.moon_phase,
             moon_illumination: astroData.astronomy.moon_illumination_percentage,
-            location: astroData.location.city || astroData.location.location_string || formattedLocation,
-            lat: astroData.location.latitude,
-            long: astroData.location.longitude,
-            zipCode: zipCode
+            location: locationData.city,
+            lat: locationData.latitude,
+            long: locationData.longitude,
+            state: locationData.state,
+            country: locationData.country,
+            zipCode: zipCode || null, // Keep for backward compatibility
+            locationInput: locationInput,
+            originalInput: locationData.originalInput,
+            formattedLocation: locationData.formattedLocation
         };
 
         res.json(result);
@@ -547,7 +622,8 @@ app.post('/api/astronomy', async (req, res) => {
         console.error('Error:', error.message);
         res.status(500).json({
             error: 'Failed to fetch astronomy data',
-            details: error.message
+            details: error.message,
+            suggestion: 'Please check your location input. Try: ZIP code (90210), City (Los Angeles), or City, State (Los Angeles, CA)'
         });
     }
 });
@@ -734,14 +810,18 @@ app.post('/api/astronomy-calculated-detailed', async (req, res) => {
         const location = await getLocationFromZip(zipCode);
         console.log(`Location found: ${location.city}, ${location.state} (${location.latitude}, ${location.longitude})`);
 
-        // Calculate date range
+        // Calculate date range - handle timezone issues properly
         let startDate, endDate;
         if (fromDate && toDate) {
-            startDate = new Date(fromDate);
-            endDate = new Date(toDate);
+            // Parse dates as local dates, not UTC
+            // This prevents timezone offset issues
+            startDate = new Date(fromDate + 'T00:00:00'); // Force local interpretation
+            endDate = new Date(toDate + 'T00:00:00');
         } else {
             startDate = new Date();
-            endDate = new Date();
+            // Reset to start of local day
+            startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(startDate);
             endDate.setDate(startDate.getDate() + days);
         }
 
@@ -760,7 +840,11 @@ app.post('/api/astronomy-calculated-detailed', async (req, res) => {
         const currentDate = new Date(startDate);
 
         while (currentDate <= endDate) {
-            const dateString = currentDate.toISOString().split('T')[0];
+            // Create dateString in local timezone format
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(currentDate.getDate()).padStart(2, '0');
+            const dateString = `${year}-${month}-${day}`;
             
             // Try both calculation methods for comparison
             const meeusData = getMeeusCalculations(currentDate, location.latitude, location.longitude);
@@ -1290,6 +1374,191 @@ app.get('/api/test-astronomy-engine/:zipCode/:date', async (req, res) => {
             error: error.message, 
             stack: error.stack,
             astronomyEngineKeys: Object.keys(AstronomyEngine)
+        });
+    }
+});
+
+// New location search endpoint for autocomplete
+app.post('/api/location-search', async (req, res) => {
+    try {
+        const { query } = req.body;
+
+        if (!query || query.length < 1) {
+            return res.json({ suggestions: [] });
+        }
+
+        if (!API_KEY) {
+            return res.status(500).json({ error: 'API key not configured' });
+        }
+
+        console.log(`Location search for: "${query}"`);
+
+        const queryTrimmed = query.trim();
+        const suggestions = [];
+        const seenLocations = new Set();
+
+        // Simple logic: Numbers = ZIP codes, Letters = Cities
+        const isNumericQuery = /^\d+$/.test(queryTrimmed);
+        
+        let searchQueries = [];
+        
+        if (isNumericQuery) {
+            // For any numeric input, treat as ZIP code search
+            console.log(`Numeric query detected: ${queryTrimmed} - searching ZIP codes`);
+            
+            if (queryTrimmed.length >= 1) {
+                // Generate potential ZIP codes by padding with common endings
+                const zipVariations = [];
+                
+                if (queryTrimmed.length === 5) {
+                    // Exact ZIP code
+                    zipVariations.push(queryTrimmed);
+                } else if (queryTrimmed.length === 4) {
+                    // 4 digits - try adding single digits
+                    for (let i = 0; i <= 9; i++) {
+                        zipVariations.push(queryTrimmed + i);
+                    }
+                } else if (queryTrimmed.length === 3) {
+                    // 3 digits - try adding two digits
+                    for (let i = 0; i <= 9; i++) {
+                        zipVariations.push(queryTrimmed + '0' + i);
+                        zipVariations.push(queryTrimmed + '1' + i);
+                        zipVariations.push(queryTrimmed + '2' + i);
+                    }
+                } else if (queryTrimmed.length === 2) {
+                    // 2 digits - try adding three digits with common patterns
+                    const commonEndings = ['001', '010', '020', '100', '110', '200', '210', '301', '401', '501'];
+                    for (const ending of commonEndings) {
+                        zipVariations.push(queryTrimmed + ending);
+                    }
+                } else if (queryTrimmed.length === 1) {
+                    // 1 digit - try common US ZIP starting patterns based on regions
+                    const regionPatterns = {
+                        '0': ['01001', '02101', '03301', '04401', '05701'], // Northeast
+                        '1': ['10001', '10019', '10021', '10024', '10025'], // NY area
+                        '2': ['20001', '20005', '20010', '20036', '20037'], // DC/MD/VA
+                        '3': ['30301', '30309', '30318', '30328', '33101'], // Southeast
+                        '4': ['40202', '40204', '45202', '48201', '49503'], // Midwest
+                        '5': ['50301', '55101', '55401', '59701', '57401'], // Upper Midwest
+                        '6': ['60601', '60614', '63101', '64111', '67202'], // Central
+                        '7': ['70112', '73301', '75201', '77002', '78701'], // South Central
+                        '8': ['80202', '80301', '83702', '85001', '87501'], // Mountain West
+                        '9': ['90210', '94102', '95814', '97201', '98101']  // West Coast
+                    };
+                    
+                    const patterns = regionPatterns[queryTrimmed] || [];
+                    zipVariations.push(...patterns);
+                }
+                
+                // Search for ZIP codes with US suffix (limit to prevent too many API calls)
+                searchQueries = zipVariations.slice(0, 10).map(zip => `${zip}, US`);
+            }
+        } else {
+            // For text input, search cities/towns
+            console.log(`Text query detected: ${queryTrimmed} - searching cities`);
+            searchQueries = [
+                queryTrimmed,
+                `${queryTrimmed}, US`,
+                `${queryTrimmed}, USA`
+            ];
+        }
+
+        console.log(`Trying ${searchQueries.length} search variations`);
+
+        for (const searchQuery of searchQueries) {
+            try {
+                const url = `https://api.ipgeolocation.io/v2/astronomy?apiKey=${API_KEY}&location=${encodeURIComponent(searchQuery)}`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.location && data.location.latitude && data.location.longitude) {
+                        const locationKey = `${data.location.latitude},${data.location.longitude}`;
+                        
+                        if (!seenLocations.has(locationKey)) {
+                            seenLocations.add(locationKey);
+                            
+                            const suggestion = {
+                                display_name: data.location.city || data.location.location_string || searchQuery,
+                                city: data.location.city || data.location.location_string,
+                                state: data.location.state_prov || '',
+                                country: data.location.country_name || '',
+                                lat: parseFloat(data.location.latitude),
+                                lon: parseFloat(data.location.longitude),
+                                source: 'ipgeolocation',
+                                query_used: searchQuery,
+                                original_query: queryTrimmed
+                            };
+                            
+                            // Format display name nicely
+                            if (suggestion.city && suggestion.state && suggestion.country === 'United States') {
+                                if (isNumericQuery) {
+                                    // For ZIP searches, show the ZIP that was found
+                                    const foundZip = searchQuery.split(',')[0];
+                                    suggestion.display_name = `${suggestion.city}, ${suggestion.state} (${foundZip})`;
+                                } else {
+                                    // For city searches, just show city, state
+                                    suggestion.display_name = `${suggestion.city}, ${suggestion.state}`;
+                                }
+                            } else if (suggestion.city && suggestion.country) {
+                                suggestion.display_name = `${suggestion.city}, ${suggestion.country}`;
+                            }
+                            
+                            suggestions.push(suggestion);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn(`Search failed for "${searchQuery}":`, err.message);
+                continue;
+            }
+        }
+
+        // For numeric queries, only show US ZIP results
+        if (isNumericQuery && suggestions.length > 0) {
+            const usResults = suggestions.filter(s => s.country === 'United States');
+            if (usResults.length > 0) {
+                console.log(`Found ${usResults.length} US ZIP code results`);
+                return res.json({ suggestions: usResults.slice(0, 8) }); // Limit to 8 results
+            }
+        }
+
+        // For text queries, prioritize US but allow international
+        if (!isNumericQuery && suggestions.length > 0) {
+            const usResults = suggestions.filter(s => s.country === 'United States');
+            const intlResults = suggestions.filter(s => s.country !== 'United States');
+            
+            // Show US results first, then international
+            const orderedResults = [...usResults, ...intlResults].slice(0, 8);
+            return res.json({ suggestions: orderedResults });
+        }
+
+        // If no results found, provide a fallback suggestion
+        if (suggestions.length === 0) {
+            suggestions.push({
+                display_name: queryTrimmed,
+                city: queryTrimmed,
+                state: '',
+                country: '',
+                source: 'manual'
+            });
+        }
+
+        console.log(`Found ${suggestions.length} suggestions for "${query}"`);
+        res.json({ suggestions });
+
+    } catch (error) {
+        console.error('Location search error:', error.message);
+        res.status(500).json({ 
+            error: 'Location search failed',
+            suggestions: [{
+                display_name: req.body.query || '',
+                city: req.body.query || '',
+                state: '',
+                country: '',
+                source: 'manual'
+            }]
         });
     }
 });
