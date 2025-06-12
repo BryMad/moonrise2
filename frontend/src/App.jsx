@@ -373,17 +373,17 @@ const MoonriseTracker = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black p-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Moon className="w-8 h-8 text-yellow-300" />
+            <Moon className="w-8 h-8 text-blue-200" />
             <h1 className="text-4xl font-bold text-white">Moonrise Tracker</h1>
           </div>
-          <p className="text-sm text-purple-200">Discover when the moon rises during night hours in your area! </p> <p className="text-sm text-purple-200">Enter your zip or city below to get moonrise times and an importable calendar. </p>
+          <p className="text-sm text-slate-300">Discover when the moon rises during night hours in your area! </p> <p className="text-sm text-slate-300">Enter your zip or city below to get moonrise times and an importable calendar. </p>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-6">
+        <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-6 border border-white/20">
           <div className="space-y-4">
             <div className="relative">
               <div className="block text-sm font-medium text-white mb-2">
@@ -397,7 +397,7 @@ const MoonriseTracker = () => {
                   value={locationInput}
                   onChange={(e) => handleInputChange(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="w-full px-4 py-2 pr-10 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/60 focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                  className="w-full px-4 py-2 pr-10 rounded-lg bg-white/20 border border-slate-400/30 text-white placeholder-slate-300/60 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                   placeholder="Numbers for ZIP codes, letters for cities..."
                   autoComplete="off"
                 />
@@ -421,31 +421,31 @@ const MoonriseTracker = () => {
 
                 {/* Autocomplete Dropdown */}
                 {showSuggestions && suggestions.length > 0 && (
-                  <div ref={suggestionsRef} className="absolute top-full left-0 right-0 z-50 mt-1 bg-white/95 backdrop-blur-md rounded-lg border border-white/20 shadow-xl max-h-60 overflow-y-auto">
+                  <div ref={suggestionsRef} className="absolute top-full left-0 right-0 z-50 mt-1 bg-slate-800/95 backdrop-blur-md rounded-lg border border-slate-500/30 shadow-xl max-h-60 overflow-y-auto">
                     {suggestions.map((suggestion, index) => (
-                      <div key={`${suggestion.display_name}-${index}`} onClick={() => selectSuggestion(suggestion)} className={`px-4 py-3 cursor-pointer transition-colors border-b border-white/10 last:border-b-0 ${index === selectedIndex ? "bg-purple-500/20 text-purple-900" : "text-gray-800 hover:bg-purple-100/50"}`}>
+                      <div key={`${suggestion.display_name}-${index}`} onClick={() => selectSuggestion(suggestion)} className={`px-4 py-3 cursor-pointer transition-colors border-b border-slate-600/20 last:border-b-0 ${index === selectedIndex ? "bg-blue-500/20 text-blue-100" : "text-slate-200 hover:bg-slate-700/50"}`}>
                         <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                          <MapPin className="w-4 h-4 text-blue-400 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium truncate">{suggestion.display_name}</div>
                             {suggestion.city && suggestion.city !== suggestion.display_name && (
-                              <div className="text-sm text-gray-600 truncate">
+                              <div className="text-sm text-slate-400 truncate">
                                 {suggestion.city}
                                 {suggestion.state && `, ${suggestion.state}`}
                                 {suggestion.country && `, ${suggestion.country}`}
                               </div>
                             )}
-                            {suggestion.query_used && suggestion.query_used !== suggestion.display_name && <div className="text-xs text-gray-500 truncate">📍 Found via: {suggestion.query_used}</div>}
+                            {suggestion.query_used && suggestion.query_used !== suggestion.display_name && <div className="text-xs text-slate-500 truncate">📍 Found via: {suggestion.query_used}</div>}
                           </div>
-                          {suggestion.source === "geoapify" && <div className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">🌍</div>}
-                          {suggestion.source === "ipgeolocation" && <div className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">📍</div>}
+                          {suggestion.source === "geoapify" && <div className="text-xs text-blue-400 bg-blue-900/30 px-2 py-1 rounded">🌍</div>}
+                          {suggestion.source === "ipgeolocation" && <div className="text-xs text-teal-400 bg-teal-900/30 px-2 py-1 rounded">📍</div>}
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-              <div className="mt-1 text-xs text-purple-300">
+              <div className="mt-1 text-xs text-slate-400">
                 {locationInput && /^\d+$/.test(locationInput.trim()) && <div className="mt-1 text-green-300">🔢 Searching ZIP codes for "{locationInput}"</div>}
                 {locationInput && /^[a-zA-Z\s]+$/.test(locationInput.trim()) && <div className="mt-1 text-blue-300">🏙️ Searching cities for "{locationInput}"</div>}
               </div>
@@ -460,24 +460,24 @@ const MoonriseTracker = () => {
 
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-white cursor-pointer">
-                  <input type="radio" checked={useDefaultRange} onChange={() => setUseDefaultRange(true)} className="text-purple-600 focus:ring-purple-400" />
+                  <input type="radio" checked={useDefaultRange} onChange={() => setUseDefaultRange(true)} className="text-blue-600 focus:ring-blue-400" />
                   <span className="text-sm">Next 30 days</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-white cursor-pointer">
-                  <input type="radio" checked={!useDefaultRange} onChange={() => setUseDefaultRange(false)} className="text-purple-600 focus:ring-purple-400" />
+                  <input type="radio" checked={!useDefaultRange} onChange={() => setUseDefaultRange(false)} className="text-blue-600 focus:ring-blue-400" />
                   <span className="text-sm">Custom date range</span>
                 </label>
 
                 {!useDefaultRange && (
                   <div className="grid grid-cols-2 gap-3 mt-3 pl-6">
                     <div>
-                      <label className="block text-xs text-purple-200 mb-1">From</label>
-                      <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg bg-white/20 border border-white/30 text-white focus:ring-2 focus:ring-purple-400 focus:border-transparent" />
+                      <label className="block text-xs text-slate-300 mb-1">From</label>
+                      <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg bg-white/20 border border-slate-400/30 text-white focus:ring-2 focus:ring-blue-400 focus:border-transparent" />
                     </div>
                     <div>
-                      <label className="block text-xs text-purple-200 mb-1">To</label>
-                      <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg bg-white/20 border border-white/30 text-white focus:ring-2 focus:ring-purple-400 focus:border-transparent" />
+                      <label className="block text-xs text-slate-300 mb-1">To</label>
+                      <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg bg-white/20 border border-slate-400/30 text-white focus:ring-2 focus:ring-blue-400 focus:border-transparent" />
                     </div>
                   </div>
                 )}
@@ -492,53 +492,53 @@ const MoonriseTracker = () => {
               </div>
 
               <div className="space-y-3">
-                <p className="text-xs text-purple-200 leading-relaxed">To avoid late-night alerts, we'll only show moonrises that occur between sunset and your bedtime. This ensures you won't get calendar notifications at 3 AM when the moon rises!</p>
+                <p className="text-xs text-slate-300 leading-relaxed">To avoid late-night alerts, we'll only show moonrises that occur between sunset and your bedtime. This ensures you won't get calendar notifications at 3 AM when the moon rises!</p>
 
                 <div className="w-full">
-                  <select value={bedtime} onChange={(e) => setBedtime(e.target.value)} className="w-full px-4 py-2 rounded-lg bg-white/20 border border-white/30 text-white focus:ring-2 focus:ring-purple-400 focus:border-transparent">
-                    <option value="21:00" className="bg-purple-900 text-white">
+                  <select value={bedtime} onChange={(e) => setBedtime(e.target.value)} className="w-full px-4 py-2 rounded-lg bg-white/20 border border-slate-400/30 text-white focus:ring-2 focus:ring-blue-400 focus:border-transparent">
+                    <option value="21:00" className="bg-slate-800 text-white">
                       9:00 PM
                     </option>
-                    <option value="21:30" className="bg-purple-900 text-white">
+                    <option value="21:30" className="bg-slate-800 text-white">
                       9:30 PM
                     </option>
-                    <option value="22:00" className="bg-purple-900 text-white">
+                    <option value="22:00" className="bg-slate-800 text-white">
                       10:00 PM
                     </option>
-                    <option value="22:30" className="bg-purple-900 text-white">
+                    <option value="22:30" className="bg-slate-800 text-white">
                       10:30 PM
                     </option>
-                    <option value="23:00" className="bg-purple-900 text-white">
+                    <option value="23:00" className="bg-slate-800 text-white">
                       11:00 PM (Default)
                     </option>
-                    <option value="23:30" className="bg-purple-900 text-white">
+                    <option value="23:30" className="bg-slate-800 text-white">
                       11:30 PM
                     </option>
-                    <option value="00:00" className="bg-purple-900 text-white">
+                    <option value="00:00" className="bg-slate-800 text-white">
                       12:00 AM (Midnight)
                     </option>
-                    <option value="00:30" className="bg-purple-900 text-white">
+                    <option value="00:30" className="bg-slate-800 text-white">
                       12:30 AM
                     </option>
-                    <option value="01:00" className="bg-purple-900 text-white">
+                    <option value="01:00" className="bg-slate-800 text-white">
                       1:00 AM
                     </option>
-                    <option value="01:30" className="bg-purple-900 text-white">
+                    <option value="01:30" className="bg-slate-800 text-white">
                       1:30 AM
                     </option>
-                    <option value="02:00" className="bg-purple-900 text-white">
+                    <option value="02:00" className="bg-slate-800 text-white">
                       2:00 AM
                     </option>
-                    <option value="03:00" className="bg-purple-900 text-white">
+                    <option value="03:00" className="bg-slate-800 text-white">
                       3:00 AM
                     </option>
-                    <option value="04:00" className="bg-purple-900 text-white">
+                    <option value="04:00" className="bg-slate-800 text-white">
                       4:00 AM
                     </option>
-                    <option value="05:00" className="bg-purple-900 text-white">
+                    <option value="05:00" className="bg-slate-800 text-white">
                       5:00 AM
                     </option>
-                    <option value="sunrise" className="bg-purple-900 text-white">
+                    <option value="sunrise" className="bg-slate-800 text-white">
                       Until Sunrise (Original Behavior)
                     </option>
                   </select>
@@ -546,7 +546,7 @@ const MoonriseTracker = () => {
               </div>
             </div>
 
-            <button onClick={fetchUpcomingMoonrises} disabled={loading} className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2">
+            <button onClick={fetchUpcomingMoonrises} disabled={loading} className="w-full bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 border border-slate-500/30">
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -562,7 +562,7 @@ const MoonriseTracker = () => {
           </div>
 
           {error && (
-            <div className={`mt-4 p-4 rounded-lg flex items-center gap-2 ${error.startsWith("✅") ? "bg-green-500/20 border border-green-400/30 text-green-200" : "bg-red-500/20 border border-red-400/30 text-red-200"}`}>
+            <div className={`mt-4 p-4 rounded-lg flex items-center gap-2 border ${error.startsWith("✅") ? "bg-green-500/20 border-green-400/30 text-green-200" : "bg-red-500/20 border-red-400/30 text-red-200"}`}>
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <p>{error}</p>
             </div>
@@ -570,20 +570,20 @@ const MoonriseTracker = () => {
         </div>
 
         {moonriseData && (
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6">
+          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-white mb-2">🌙 {moonriseData.location}</h2>
-              <p className="text-purple-200">{moonriseData.totalEvents} watchable moonrises found</p>
-              <p className="text-purple-300 text-sm mb-2">
+              <p className="text-slate-300">{moonriseData.totalEvents} watchable moonrises found</p>
+              <p className="text-slate-400 text-sm mb-2">
                 {moonriseData.state && `${moonriseData.state}, `}
                 {moonriseData.country} • {moonriseData.dateRange.from} to {moonriseData.dateRange.to}
               </p>
-              {moonriseData.originalInput && moonriseData.originalInput !== moonriseData.location && <p className="text-purple-400 text-xs mb-2">📍 Searched for: "{moonriseData.originalInput}"</p>}
-              <p className="text-purple-400 text-xs mb-4">
+              {moonriseData.originalInput && moonriseData.originalInput !== moonriseData.location && <p className="text-slate-500 text-xs mb-2">📍 Searched for: "{moonriseData.originalInput}"</p>}
+              <p className="text-slate-500 text-xs mb-4">
                 {moonriseData.calculationMethod} • {moonriseData.accuracy}
               </p>
 
-              <button onClick={downloadICS} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 mx-auto">
+              <button onClick={downloadICS} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 mx-auto border border-blue-500/30">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -602,7 +602,7 @@ const MoonriseTracker = () => {
                     <p className="text-purple-200 text-sm">
                       {getMoonPhaseName(event.moon_phase)} • {Math.abs(parseFloat(event.moon_illumination)).toFixed(0)}% illuminated
                     </p>
-                    <p className="text-purple-300 text-xs">
+                    <p className="text-slate-400 text-xs">
                       Sunset: {formatTime(event.sunset)} • Moonrise: {formatTime(event.moonrise)}
                       {event.calculation_method && ` • ${event.calculation_method}`}
                     </p>
