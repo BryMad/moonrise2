@@ -373,8 +373,70 @@ const MoonriseTracker = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black p-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-tl from-black via-gray-900 to-slate-800 p-4 relative overflow-hidden">
+      {/* Enhanced Starfield Background */}
+      <div className="absolute inset-0 opacity-40">
+        {/* Row 1 - Top */}
+        <div className="absolute top-[5%] left-[10%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[8%] left-[25%] w-0.5 h-0.5 bg-blue-100 rounded-full"></div>
+        <div className="absolute top-[12%] left-[45%] w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: "2s" }}></div>
+        <div className="absolute top-[6%] left-[65%] w-0.5 h-0.5 bg-slate-200 rounded-full"></div>
+        <div className="absolute top-[15%] left-[80%] w-0.5 h-0.5 bg-blue-200 rounded-full"></div>
+        <div className="absolute top-[3%] left-[90%] w-0.5 h-0.5 bg-white rounded-full"></div>
+
+        {/* Row 2 */}
+        <div className="absolute top-[20%] left-[5%] w-0.5 h-0.5 bg-blue-100 rounded-full"></div>
+        <div className="absolute top-[25%] left-[15%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[22%] left-[35%] w-0.5 h-0.5 bg-slate-300 rounded-full"></div>
+        <div className="absolute top-[28%] left-[55%] w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: "4s" }}></div>
+        <div className="absolute top-[24%] left-[75%] w-0.5 h-0.5 bg-blue-200 rounded-full"></div>
+        <div className="absolute top-[18%] left-[88%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[26%] left-[95%] w-0.5 h-0.5 bg-slate-200 rounded-full"></div>
+
+        {/* Row 3 */}
+        <div className="absolute top-[35%] left-[8%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[38%] left-[20%] w-0.5 h-0.5 bg-blue-100 rounded-full"></div>
+        <div className="absolute top-[32%] left-[40%] w-0.5 h-0.5 bg-slate-200 rounded-full"></div>
+        <div className="absolute top-[42%] left-[60%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[36%] left-[78%] w-1 h-1 bg-blue-200 rounded-full animate-pulse" style={{ animationDelay: "6s" }}></div>
+        <div className="absolute top-[40%] left-[92%] w-0.5 h-0.5 bg-white rounded-full"></div>
+
+        {/* Row 4 */}
+        <div className="absolute top-[48%] left-[12%] w-0.5 h-0.5 bg-blue-100 rounded-full"></div>
+        <div className="absolute top-[52%] left-[28%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[45%] left-[48%] w-0.5 h-0.5 bg-slate-300 rounded-full"></div>
+        <div className="absolute top-[55%] left-[68%] w-0.5 h-0.5 bg-blue-200 rounded-full"></div>
+        <div className="absolute top-[50%] left-[85%] w-0.5 h-0.5 bg-white rounded-full"></div>
+
+        {/* Row 5 */}
+        <div className="absolute top-[62%] left-[6%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[65%] left-[22%] w-1 h-1 bg-slate-200 rounded-full animate-pulse" style={{ animationDelay: "8s" }}></div>
+        <div className="absolute top-[68%] left-[42%] w-0.5 h-0.5 bg-blue-100 rounded-full"></div>
+        <div className="absolute top-[63%] left-[58%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[70%] left-[75%] w-0.5 h-0.5 bg-blue-200 rounded-full"></div>
+        <div className="absolute top-[66%] left-[90%] w-0.5 h-0.5 bg-slate-300 rounded-full"></div>
+
+        {/* Row 6 - Bottom */}
+        <div className="absolute top-[75%] left-[15%] w-0.5 h-0.5 bg-blue-100 rounded-full"></div>
+        <div className="absolute top-[82%] left-[30%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[78%] left-[50%] w-0.5 h-0.5 bg-slate-200 rounded-full"></div>
+        <div className="absolute top-[85%] left-[70%] w-0.5 h-0.5 bg-blue-200 rounded-full"></div>
+        <div className="absolute top-[80%] left-[85%] w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: "1s" }}></div>
+
+        {/* Additional scattered stars */}
+        <div className="absolute top-[14%] left-[32%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[44%] left-[16%] w-0.5 h-0.5 bg-blue-100 rounded-full"></div>
+        <div className="absolute top-[72%] left-[38%] w-0.5 h-0.5 bg-slate-300 rounded-full"></div>
+        <div className="absolute top-[29%] left-[82%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[58%] left-[25%] w-0.5 h-0.5 bg-blue-200 rounded-full"></div>
+        <div className="absolute top-[88%] left-[52%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[16%] left-[72%] w-0.5 h-0.5 bg-blue-100 rounded-full"></div>
+        <div className="absolute top-[37%] left-[8%] w-0.5 h-0.5 bg-slate-200 rounded-full"></div>
+        <div className="absolute top-[73%] left-[64%] w-0.5 h-0.5 bg-white rounded-full"></div>
+        <div className="absolute top-[91%] left-[18%] w-0.5 h-0.5 bg-blue-200 rounded-full"></div>
+      </div>
+
+      <div className="max-w-2xl mx-auto relative z-10">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Moon className="w-8 h-8 text-blue-200" />
