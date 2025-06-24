@@ -167,7 +167,7 @@ const getAstronomyEngineCalculations = (date, lat, lng) => {
             sunset: astroTimeToLocalTime(sunset, lat, lng),
             moonrise: astroTimeToLocalTime(moonrise, lat, lng),
             moonset: astroTimeToLocalTime(moonset, lat, lng),
-            moon_phase: moonIllum.phase_angle / 360, // Convert to 0-1 scale like SunCalc
+            moon_phase: (moonIllum.phase_angle + 180) / 360, // Convert -180° to +180° range to 0-1 scale
             moon_illumination: (moonIllum.phase_fraction * 100).toFixed(1)
         };
     } catch (error) {
@@ -314,13 +314,14 @@ const isNighttimeMoonrise = (sunsetTime, moonriseTime, sunriseTime, bedtime = nu
 
 // Helper function to get moon phase name from phase value
 const getMoonPhaseName = (phase) => {
-    if (phase < 0.1 || phase > 0.9) return "New Moon";
-    if (phase >= 0.1 && phase < 0.25) return "Waxing Crescent";
-    if (phase >= 0.25 && phase < 0.35) return "First Quarter";
-    if (phase >= 0.35 && phase < 0.5) return "Waxing Gibbous";
-    if (phase >= 0.5 && phase < 0.65) return "Full Moon";
-    if (phase >= 0.65 && phase < 0.75) return "Waning Gibbous";
-    if (phase >= 0.75 && phase < 0.9) return "Last Quarter";
+    const phaseNum = parseFloat(phase);
+    if (phaseNum <= 0.03 || phaseNum >= 0.97) return "New Moon";
+    if (phaseNum > 0.03 && phaseNum < 0.22) return "Waxing Crescent";
+    if (phaseNum >= 0.22 && phaseNum < 0.28) return "First Quarter";
+    if (phaseNum >= 0.28 && phaseNum < 0.47) return "Waxing Gibbous";
+    if (phaseNum >= 0.47 && phaseNum < 0.53) return "Full Moon";
+    if (phaseNum >= 0.53 && phaseNum < 0.72) return "Waning Gibbous";
+    if (phaseNum >= 0.72 && phaseNum < 0.78) return "Last Quarter";
     return "Waning Crescent";
 };
 

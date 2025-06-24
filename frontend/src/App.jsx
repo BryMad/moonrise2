@@ -278,25 +278,25 @@ const MoonriseTracker = () => {
 
   const getMoonPhaseIcon = (phase) => {
     const phaseNum = parseFloat(phase);
-    if (phaseNum < 0.1 || phaseNum > 0.9) return "🌑"; // New Moon
-    if (phaseNum >= 0.1 && phaseNum < 0.25) return "🌒"; // Waxing Crescent
-    if (phaseNum >= 0.25 && phaseNum < 0.35) return "🌓"; // First Quarter
-    if (phaseNum >= 0.35 && phaseNum < 0.5) return "🌔"; // Waxing Gibbous
-    if (phaseNum >= 0.5 && phaseNum < 0.65) return "🌕"; // Full Moon
-    if (phaseNum >= 0.65 && phaseNum < 0.75) return "🌖"; // Waning Gibbous
-    if (phaseNum >= 0.75 && phaseNum < 0.9) return "🌗"; // Last Quarter
+    if (phaseNum <= 0.03 || phaseNum >= 0.97) return "🌑"; // New Moon
+    if (phaseNum > 0.03 && phaseNum < 0.22) return "🌒"; // Waxing Crescent
+    if (phaseNum >= 0.22 && phaseNum < 0.28) return "🌓"; // First Quarter
+    if (phaseNum >= 0.28 && phaseNum < 0.47) return "🌔"; // Waxing Gibbous
+    if (phaseNum >= 0.47 && phaseNum < 0.53) return "🌕"; // Full Moon
+    if (phaseNum >= 0.53 && phaseNum < 0.72) return "🌖"; // Waning Gibbous
+    if (phaseNum >= 0.72 && phaseNum < 0.78) return "🌗"; // Last Quarter
     return "🌘"; // Waning Crescent
   };
 
   const getMoonPhaseName = (phase) => {
     const phaseNum = parseFloat(phase);
-    if (phaseNum < 0.1 || phaseNum > 0.9) return "New Moon";
-    if (phaseNum >= 0.1 && phaseNum < 0.25) return "Waxing Crescent";
-    if (phaseNum >= 0.25 && phaseNum < 0.35) return "First Quarter";
-    if (phaseNum >= 0.35 && phaseNum < 0.5) return "Waxing Gibbous";
-    if (phaseNum >= 0.5 && phaseNum < 0.65) return "Full Moon";
-    if (phaseNum >= 0.65 && phaseNum < 0.75) return "Waning Gibbous";
-    if (phaseNum >= 0.75 && phaseNum < 0.9) return "Last Quarter";
+    if (phaseNum <= 0.03 || phaseNum >= 0.97) return "New Moon";
+    if (phaseNum > 0.03 && phaseNum < 0.22) return "Waxing Crescent";
+    if (phaseNum >= 0.22 && phaseNum < 0.28) return "First Quarter";
+    if (phaseNum >= 0.28 && phaseNum < 0.47) return "Waxing Gibbous";
+    if (phaseNum >= 0.47 && phaseNum < 0.53) return "Full Moon";
+    if (phaseNum >= 0.53 && phaseNum < 0.72) return "Waning Gibbous";
+    if (phaseNum >= 0.72 && phaseNum < 0.78) return "Last Quarter";
     return "Waning Crescent";
   };
 
