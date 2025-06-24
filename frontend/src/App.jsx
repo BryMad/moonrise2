@@ -448,7 +448,7 @@ const MoonriseTracker = () => {
         <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-6 border border-white/20">
           <div className="space-y-4">
             <div className="relative">
-              <div className="block text-sm font-medium text-white mb-2">
+              <div className="block text-lg font-medium text-blue-300 mb-2">
                 <MapPin className="inline w-4 h-4 mr-1" />
                 Location (enter ZIP Code or City)
               </div>
@@ -497,7 +497,6 @@ const MoonriseTracker = () => {
                                 {suggestion.country && `, ${suggestion.country}`}
                               </div>
                             )}
-                            {suggestion.query_used && suggestion.query_used !== suggestion.display_name && <div className="text-xs text-slate-500 truncate">📍 Found via: {suggestion.query_used}</div>}
                           </div>
                           {suggestion.source === "geoapify" && <div className="text-xs text-blue-400 bg-blue-900/30 px-2 py-1 rounded">🌍</div>}
                           {suggestion.source === "ipgeolocation" && <div className="text-xs text-teal-400 bg-teal-900/30 px-2 py-1 rounded">📍</div>}
@@ -517,7 +516,7 @@ const MoonriseTracker = () => {
             <div className="mt-10">
               <div className="flex items-center gap-2 mb-3">
                 <Clock className="w-4 h-4 text-white" />
-                <span className="text-sm font-medium text-white">Date Range</span>
+                <span className="text-lg font-medium text-blue-300">Date Range</span>
               </div>
 
               <div className="space-y-3">
@@ -550,7 +549,7 @@ const MoonriseTracker = () => {
             <div className="mt-10">
               <div className="flex items-center gap-2 mb-3">
                 <Sun className="w-4 h-4 text-white" />
-                <span className="text-sm font-medium text-white">Your Bedtime</span>
+                <span className="text-lg font-medium text-blue-300">Your Bedtime</span>
               </div>
 
               <div className="space-y-3">
@@ -608,7 +607,10 @@ const MoonriseTracker = () => {
               </div>
             </div>
 
-            <button onClick={fetchUpcomingMoonrises} disabled={loading} className="w-full bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 border border-slate-500/30">
+            {/* Divider */}
+            <div className="my-8 border-t border-slate-600/30"></div>
+
+            <button onClick={fetchUpcomingMoonrises} disabled={loading} className="w-full bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-blue-300 font-semibold py-4 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 border border-slate-500/30 shadow-lg hover:shadow-xl">
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
