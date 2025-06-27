@@ -4,14 +4,10 @@
   "description": "Professional astronomical moonrise tracking application",
   "main": "backend/server.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "build": "cd frontend && npm run build",
-    "build:full": "npm install && cd backend && npm install && cd ../frontend && npm install && npm run build",
-    "start": "cd backend && npm start",
-    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-    "test": "cd backend && npm test && cd ../frontend && npm test"
+    "server-build": "cd backend && npm i",
+    "frontend-build": "cd frontend && npm run build-install",
+    "build": "npm run server-build && npm run frontend-build",
+    "start": "cd backend && npm start"
   },
   "keywords": [
     "astronomy",
