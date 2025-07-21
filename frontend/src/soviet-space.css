@@ -1,0 +1,459 @@
+/* Soviet Space Race Aesthetic */
+@import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Orbitron:wght@400;700;900&display=swap');
+
+:root {
+  --soviet-red: #cc0000;
+  --soviet-gold: #ffcc00;
+  --cosmic-blue: #1a2f5a;
+  --steel-gray: #4a5568;
+  --space-black: #0d1117;
+  --industrial-silver: #cbd5e0;
+  --rocket-orange: #ff6b35;
+  --star-white: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, var(--space-black) 0%, var(--cosmic-blue) 30%, #1a1a2e 70%, var(--space-black) 100%);
+  min-height: 100vh;
+  font-family: 'Orbitron', monospace;
+  overflow-x: hidden;
+}
+
+/* Soviet Industrial Pattern Background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 20% 80%, rgba(204, 0, 0, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 204, 0, 0.1) 0%, transparent 50%),
+    linear-gradient(45deg, transparent 48%, rgba(255, 107, 53, 0.03) 49%, rgba(255, 107, 53, 0.03) 51%, transparent 52%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Cosmic Grid Pattern */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(255, 204, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 204, 0, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#root {
+  position: relative;
+  z-index: 10;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Soviet Style Headers */
+h1 {
+  font-family: 'Russo One', sans-serif;
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: var(--soviet-gold);
+  text-shadow: 
+    2px 2px 0px var(--soviet-red),
+    4px 4px 8px rgba(0, 0, 0, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0;
+}
+
+h2 {
+  font-family: 'Russo One', sans-serif;
+  font-size: 2rem;
+  color: var(--soviet-gold);
+  text-shadow: 1px 1px 2px var(--soviet-red);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Main Container Styling */
+.min-h-screen {
+  position: relative;
+  z-index: 10;
+}
+
+/* Soviet Industrial Card Design */
+.bg-white\/10 {
+  background: linear-gradient(145deg, 
+    rgba(74, 85, 104, 0.2) 0%, 
+    rgba(26, 47, 90, 0.3) 50%, 
+    rgba(74, 85, 104, 0.2) 100%);
+  backdrop-filter: blur(10px);
+  border: 2px solid var(--soviet-gold);
+  border-radius: 0;
+  box-shadow: 
+    0 0 20px rgba(255, 204, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+/* Soviet Badge Corner */
+.bg-white\/10::before {
+  content: '☭';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  background: var(--soviet-red);
+  color: var(--soviet-gold);
+  font-size: 1.2rem;
+  padding: 0.5rem;
+  font-weight: bold;
+  border-bottom-left-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Input Styling - Industrial Soviet Design */
+input[type="text"], 
+input[type="date"], 
+select {
+  background: linear-gradient(145deg, 
+    rgba(26, 47, 90, 0.8) 0%, 
+    rgba(13, 17, 23, 0.9) 100%);
+  border: 2px solid var(--steel-gray);
+  border-radius: 0;
+  color: var(--star-white);
+  font-family: 'Orbitron', monospace;
+  font-weight: 400;
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+input[type="text"]:focus,
+input[type="date"]:focus,
+select:focus {
+  border-color: var(--soviet-gold);
+  box-shadow: 
+    0 0 15px rgba(255, 204, 0, 0.5),
+    inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  outline: none;
+}
+
+/* Soviet Style Buttons */
+button {
+  background: linear-gradient(145deg, 
+    var(--soviet-red) 0%, 
+    #aa0000 50%, 
+    var(--soviet-red) 100%);
+  border: 2px solid var(--soviet-gold);
+  border-radius: 0;
+  color: var(--star-white);
+  font-family: 'Russo One', sans-serif;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 1rem 2rem;
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 204, 0, 0.3), 
+    transparent);
+  transition: left 0.5s ease;
+}
+
+button:hover::before {
+  left: 100%;
+}
+
+button:hover {
+  background: linear-gradient(145deg, 
+    #ff0000 0%, 
+    var(--soviet-red) 50%, 
+    #ff0000 100%);
+  box-shadow: 
+    0 6px 12px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(255, 204, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+button:disabled {
+  background: linear-gradient(145deg, 
+    var(--steel-gray) 0%, 
+    #2d3748 50%, 
+    var(--steel-gray) 100%);
+  border-color: var(--steel-gray);
+  color: #a0aec0;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Soviet Typography */
+.text-blue-300,
+.text-blue-200,
+.text-slate-300 {
+  color: var(--soviet-gold) !important;
+  font-weight: 600;
+}
+
+.text-white {
+  color: var(--star-white) !important;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.text-slate-400,
+.text-slate-500 {
+  color: var(--industrial-silver) !important;
+}
+
+.text-purple-200 {
+  color: var(--rocket-orange) !important;
+  font-weight: 500;
+}
+
+/* Soviet Badge Labels */
+label {
+  color: var(--soviet-gold);
+  font-family: 'Russo One', sans-serif;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Dropdown Styling */
+.absolute.top-full {
+  background: linear-gradient(145deg, 
+    rgba(26, 47, 90, 0.95) 0%, 
+    rgba(13, 17, 23, 0.98) 100%);
+  border: 2px solid var(--soviet-gold);
+  border-radius: 0;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.5),
+    0 0 15px rgba(255, 204, 0, 0.3);
+}
+
+/* Soviet Space Icons Enhancement */
+.lucide {
+  filter: drop-shadow(0 0 5px currentColor);
+}
+
+/* Moonrise Event Cards - Soviet Industrial Style */
+.space-y-3 > div {
+  background: linear-gradient(135deg, 
+    rgba(26, 47, 90, 0.6) 0%, 
+    rgba(74, 85, 104, 0.4) 50%, 
+    rgba(26, 47, 90, 0.6) 100%);
+  border: 1px solid var(--soviet-gold);
+  border-radius: 0;
+  position: relative;
+  padding: 1rem;
+  transition: all 0.3s ease;
+}
+
+.space-y-3 > div::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--soviet-red);
+}
+
+.space-y-3 > div:hover {
+  background: linear-gradient(135deg, 
+    rgba(255, 204, 0, 0.1) 0%, 
+    rgba(26, 47, 90, 0.6) 50%, 
+    rgba(255, 204, 0, 0.1) 100%);
+  box-shadow: 0 0 15px rgba(255, 204, 0, 0.4);
+  transform: translateX(5px);
+}
+
+/* Soviet Star Field Enhancement */
+.absolute.inset-0 {
+  position: fixed;
+  z-index: 2;
+}
+
+/* Add some Soviet space-age geometric patterns */
+.absolute.inset-0::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 5%;
+  width: 200px;
+  height: 200px;
+  background: 
+    conic-gradient(from 0deg, 
+      transparent 0deg 45deg,
+      rgba(255, 204, 0, 0.1) 45deg 90deg,
+      transparent 90deg 135deg,
+      rgba(204, 0, 0, 0.1) 135deg 180deg,
+      transparent 180deg 225deg,
+      rgba(255, 204, 0, 0.1) 225deg 270deg,
+      transparent 270deg 315deg,
+      rgba(204, 0, 0, 0.1) 315deg 360deg);
+  border-radius: 50%;
+  animation: sovietRotate 30s linear infinite;
+  opacity: 0.3;
+}
+
+.absolute.inset-0::after {
+  content: '';
+  position: absolute;
+  top: 60%;
+  right: 8%;
+  width: 150px;
+  height: 150px;
+  background: 
+    radial-gradient(circle, 
+      rgba(255, 107, 53, 0.2) 0%, 
+      transparent 40%),
+    conic-gradient(from 45deg, 
+      transparent 0deg 60deg,
+      rgba(255, 204, 0, 0.15) 60deg 120deg,
+      transparent 120deg 180deg,
+      rgba(255, 204, 0, 0.15) 180deg 240deg,
+      transparent 240deg 300deg,
+      rgba(255, 204, 0, 0.15) 300deg 360deg);
+  border-radius: 50%;
+  animation: sovietRotate 25s linear infinite reverse;
+  opacity: 0.4;
+}
+
+@keyframes sovietRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Soviet Success/Error Messages */
+.bg-green-500\/20 {
+  background: linear-gradient(145deg, 
+    rgba(0, 128, 0, 0.3) 0%, 
+    rgba(255, 204, 0, 0.2) 100%);
+  border-color: var(--soviet-gold);
+}
+
+.bg-red-500\/20 {
+  background: linear-gradient(145deg, 
+    rgba(204, 0, 0, 0.4) 0%, 
+    rgba(139, 0, 0, 0.3) 100%);
+  border-color: var(--soviet-red);
+}
+
+/* Soviet Industrial Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--space-black);
+  border: 1px solid var(--steel-gray);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(145deg, 
+    var(--soviet-red) 0%, 
+    var(--soviet-gold) 50%, 
+    var(--soviet-red) 100%);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(145deg, 
+    var(--soviet-gold) 0%, 
+    var(--soviet-red) 50%, 
+    var(--soviet-gold) 100%);
+}
+
+/* Radio Button Styling */
+input[type="radio"] {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--soviet-gold);
+  border-radius: 50%;
+  background: var(--space-black);
+  position: relative;
+  cursor: pointer;
+}
+
+input[type="radio"]:checked::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background: var(--soviet-red);
+  border-radius: 50%;
+  box-shadow: 0 0 5px var(--soviet-red);
+}
+
+/* Placeholder Styling */
+::placeholder {
+  color: rgba(203, 213, 224, 0.6);
+  font-style: italic;
+}
+
+/* Mobile Responsiveness with Soviet Flair */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2.5rem;
+  }
+  
+  #root {
+    padding: 0.5rem;
+  }
+  
+  button {
+    padding: 0.8rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Loading Animation - Soviet Style */
+@keyframes sovietSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: sovietSpin 1s linear infinite;
+  border-color: var(--soviet-gold);
+  border-top-color: var(--soviet-red);
+}
+
+/* Soviet Badge Enhancement for Moon Icons */
+.text-4xl {
+  filter: drop-shadow(0 0 10px rgba(255, 204, 0, 0.5));
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}

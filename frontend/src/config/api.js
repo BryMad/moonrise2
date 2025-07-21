@@ -40,7 +40,7 @@ export const apiConfig = {
   }
 };
 
-// Helper function to build full API URLs
+// Build full API URLs
 export const buildApiUrl = (endpoint) => {
   const baseUrl = apiConfig.baseUrl.endsWith('/') 
     ? apiConfig.baseUrl.slice(0, -1) 
@@ -80,13 +80,7 @@ export const apiFetch = async (endpoint, options = {}) => {
 
 // Debug helper - logs the current configuration
 export const logApiConfig = () => {
-  console.log('🔧 API Configuration:', {
-    baseUrl: apiConfig.baseUrl,
-    environment: import.meta.env.MODE,
-    isDevelopment: import.meta.env.DEV,
-    isProduction: import.meta.env.PROD,
-    envApiUrl: import.meta.env.VITE_API_URL
-  });
+  console.log('API Configuration:', apiConfig.baseUrl, import.meta.env.MODE);
 };
 
 export default apiConfig;

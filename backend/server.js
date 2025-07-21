@@ -28,7 +28,7 @@ if (NODE_ENV === 'production') {
 // Your IPGeolocation API key (store in .env file)
 const API_KEY = process.env.IPGEOLOCATION_API_KEY;
 
-// Helper function to get lat/long from any location input (zip code, city, address, etc.)
+// Get lat/long from location input (zip code, city, address, etc.)
 const getLocationFromInput = async (locationInput) => {
     if (!API_KEY) {
         throw new Error('API key not configured');
@@ -92,7 +92,7 @@ const getLocationFromInput = async (locationInput) => {
 // Backward compatibility alias
 const getLocationFromZip = getLocationFromInput;
 
-// Helper function to convert AstroTime to local time string
+// Convert AstroTime to local time string
 const astroTimeToLocalTime = (astroTime, lat, lng) => {
     if (!astroTime) return null;
     
@@ -118,29 +118,25 @@ const astroTimeToLocalTime = (astroTime, lat, lng) => {
     return `${correctedHours}:${minutes}`;
 };
 
-// Helper function to get Astronomy Engine calculations
+// Get Astronomy Engine calculations
 const getAstronomyEngineCalculations = (date, lat, lng) => {
     try {
         // Create observer location using correct API
         const observer = new AstronomyEngine.Observer(lat, lng, 0); // elevation in meters
         
-        // Create AstroTime from date - but we need to be careful about local vs UTC date handling
-        // The issue is likely that we're passing a Date that represents local midnight, 
-        // but AstronomyEngine interprets it as UTC
+        // Create AstroTime from date - handle local vs UTC properly
+        // AstronomyEngine interprets dates as UTC
         
         console.log(`Astronomy Engine: Input date: ${date.toISOString()}`);
         console.log(`Astronomy Engine: Local date string: ${date.toString()}`);
         
-        // Create a date that represents local noon for the target date to avoid timezone issues
+        // Use local noon to avoid timezone issues
         const localDateString = date.toISOString().split('T')[0]; // Get YYYY-MM-DD
         const localNoon = new Date(localDateString + 'T12:00:00'); // Local noon
         
         console.log(`Astronomy Engine: Using search start time: ${localNoon.toISOString()}`);
         
         const astroTime = AstronomyEngine.MakeTime(localNoon);
-        
-        console.log(`Astronomy Engine: Calculating for ${localDateString} at ${lat}, ${lng}`);
-        console.log(`AstroTime created:`, astroTime.toString());
         
         // Calculate sunrise and sunset (search within 1 day)
         // Direction: 1 = rise, -1 = set
@@ -178,7 +174,7 @@ const getAstronomyEngineCalculations = (date, lat, lng) => {
 };
         
 
-// Helper function to format time from Date object to HH:MM format in local timezone
+// Format time from Date object to HH:MM format in local timezone
 const formatTime = (date, lat, lng) => {
     if (!date || isNaN(date.getTime())) return null;
     
@@ -201,7 +197,7 @@ const formatTime = (date, lat, lng) => {
     return `${correctedHours}:${minutes}`;
 };
 
-// Helper function to convert UTC seconds to local time string
+// Convert UTC seconds to local time string
 const utcSecondsToLocalTime = (utcSeconds, lat, lng, date) => {
     if (!utcSeconds || isNaN(utcSeconds)) return null;
     
@@ -233,7 +229,7 @@ const utcSecondsToLocalTime = (utcSeconds, lat, lng, date) => {
     return `${correctedHours}:${minutes}`;
 };
 
-// Helper function to get MeeusJs calculations
+// Get MeeusJs calculations
 const getMeeusCalculations = (date, lat, lng) => {
     try {
         const jdo = new A.JulianDay(date);
@@ -269,14 +265,14 @@ const getMeeusCalculations = (date, lat, lng) => {
     }
 };
 
-// Helper function to convert time string to minutes for comparison
+// Convert time string to minutes for comparison
 const timeToMinutes = (timeString) => {
     if (!timeString) return 0;
     const [hours, minutes] = timeString.split(":").map(Number);
     return hours * 60 + minutes;
 };
 
-// Helper function to check if moonrise occurs during nighttime or before bedtime
+// Check if moonrise occurs during nighttime or before bedtime
 const isNighttimeMoonrise = (sunsetTime, moonriseTime, sunriseTime, bedtime = null) => {
     if (!sunsetTime || !moonriseTime || !sunriseTime) return false;
     
@@ -312,7 +308,7 @@ const isNighttimeMoonrise = (sunsetTime, moonriseTime, sunriseTime, bedtime = nu
     return (moonrise >= sunset) || (moonrise <= sunrise);
 };
 
-// Helper function to get moon phase name from phase value
+// Get moon phase name from phase value
 const getMoonPhaseName = (phase) => {
     const phaseNum = parseFloat(phase);
     if (phaseNum <= 0.03 || phaseNum >= 0.97) return "New Moon";
@@ -1615,10 +1611,10 @@ if (NODE_ENV === 'production') {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`🌙 Moonrise Tracker API running on port ${PORT}`);
-    console.log(`🌍 Environment: ${NODE_ENV}`);
-    console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
-    console.log(`🔑 API Key configured: ${!!API_KEY}`);
+    console.log(`Moonrise Tracker API running on port ${PORT}`);
+    console.log(`Environment: ${NODE_ENV}`);
+    console.log(`Health check: http://localhost:${PORT}/api/health`);
+    console.log(`API Key configured: ${!!API_KEY}`);
     
     if (NODE_ENV === 'production') {
         console.log(`🎯 Frontend served from: ${path.join(__dirname, '../frontend/dist')}`);

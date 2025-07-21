@@ -33,8 +33,7 @@ const MoonriseTracker = () => {
     setIsSearching(true);
 
     try {
-      // Use our backend's flexible location search as primary
-      // This leverages IPGeolocation API that's already configured
+      // Use backend location search with IPGeolocation API
       const backendResponse = await apiFetch("/api/location-search", {
         method: "POST",
         body: JSON.stringify({ query }),
@@ -184,8 +183,6 @@ const MoonriseTracker = () => {
       return;
     }
 
-    console.log("Generating ICS for events:", moonriseData.events.slice(0, 3)); // Debug first 3 events
-
     const icsEvents = moonriseData.events
       .map((event, index) => {
         // Parse the moonrise time for the correct date
@@ -194,8 +191,6 @@ const MoonriseTracker = () => {
         // Create date manually to avoid timezone issues
         const [year, month, day] = event.date.split("-").map(Number);
         const startDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
-
-        console.log(`Event ${index}: ${event.date} ${event.moonrise} -> ${startDate.toLocaleString()}`); // Debug
 
         // Create 20-minute event
         const endDate = new Date(startDate);
@@ -363,7 +358,6 @@ const MoonriseTracker = () => {
       }
 
       const data = await response.json();
-      console.log("Moonrise data:", data); // Debug log
       setMoonriseData(data);
     } catch (err) {
       setError(err.message || "Failed to fetch moonrise data");
