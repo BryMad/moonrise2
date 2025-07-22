@@ -630,7 +630,7 @@ const MoonriseTracker = () => {
         {moonriseData && (
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">🌙 {moonriseData.location}</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">{moonriseData.location}</h2>
               <p className="text-slate-300">{moonriseData.totalEvents} watchable moonrises found</p>
               <p className="text-slate-400 text-sm mb-2">
                 {moonriseData.state && `${moonriseData.state}, `}
