@@ -434,7 +434,7 @@ const MoonriseTracker = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Moon className="w-8 h-8 text-blue-200" />
-            <h1 className="text-4xl font-bold text-white">Moonrise Tracker</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">Moonrise Tracker</h1>
           </div>
           <p className="text-sm text-slate-300">Discover when the moon rises during night hours in your area! </p> <p className="text-sm text-slate-300">Enter your zip or city below to get moonrise times and an importable calendar. </p>
         </div>
